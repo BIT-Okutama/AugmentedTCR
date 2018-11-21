@@ -2,7 +2,7 @@ pragma solidity ^0.4.24;
 
 import './SampleToken.sol';
 
-contract MainTCR is SampleToken {
+contract Registry is SampleToken {
 
     struct Challenge {
 
