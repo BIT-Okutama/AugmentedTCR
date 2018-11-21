@@ -1,8 +1,8 @@
 pragma solidity ^0.4.24;
 
-import './SampleToken.sol';
 
-contract Registry is SampleToken {
+
+contract Registry {
 
     struct Challenge {
 
@@ -29,13 +29,13 @@ contract Registry is SampleToken {
     uint256 private MINIMUM_CHALLENGE_STAKE = 3;
 
     mapping (uint256 => Challenge) challengers;
-    mapping (uint256 => Candidate) candidates;
+    mapping (uint256 => Proposal) candidates;
 
     uint256 challengerNonce;
     uint256 candidateNonce;
 
     constructor () public 
-    SampleToken(msg.sender, 100000000) {}
+    MyToken(msg.sender, 100000000) {}
     
     function challenge(uint256 _proposalID, uint256 _challengeStake) {
         require(_balances[msg.sender] >= MINIMUM_CHALLENGE_STAKE && 
@@ -43,10 +43,9 @@ contract Registry is SampleToken {
 
         challengers[++challengerNonce] = Challenger(
             {
-                challengeCreator: msg.sender,
-                incentivePool: _challengerStake
+                challengeCreator: msg.sender
             }
-        )
+        );
     }
 
     
