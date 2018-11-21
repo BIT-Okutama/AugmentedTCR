@@ -1,6 +1,6 @@
-pragma solidity ^0.4.8;
+pragma solidity ^0.4.24;
 
-import "https://github.com/ConsenSys/Tokens/contracts/eip20/EIP20Interface.sol";
+import "./EIP20Interface.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./DLL.sol";
 import "./AttributeStore.sol";

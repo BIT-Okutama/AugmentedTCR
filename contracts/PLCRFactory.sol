@@ -1,6 +1,6 @@
 pragma solidity ^0.4.24;
 
-import "https://github.com/ConsenSys/Tokens/contracts/eip20/EIP20.sol";
+import "./EIP20.sol";
 import "./PLCRVoting.sol";
 import "./ProxyFactory.sol";
 
