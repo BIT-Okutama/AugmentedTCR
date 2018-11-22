@@ -5,18 +5,6 @@ contract ProxyFactory {
     event ProxyDeployed(address proxyAddress, address targetAddress);
     event ProxiesDeployed(address[] proxyAddresses, address targetAddress);
 
-    function createManyProxies(uint256 _count, address _target, bytes _data)
-        public
-    {
-        address[] memory proxyAddresses = new address[](_count);
-
-        for (uint256 i = 0; i < _count; ++i) {
-            proxyAddresses[i] = createProxyImpl(_target, _data);
-        }
-
-        emit ProxiesDeployed(proxyAddresses, _target);
-    }
-
     function createProxy(address _target, bytes _data)
         public
         returns (address proxyContract)

@@ -16,7 +16,7 @@ contract PLCRFactory {
     proxyFactory = new ProxyFactory();
   }
 
-  function newPLCRBYOToken(EIP20 _token) public returns (PLCRVoting) {
+  function createNewPLCR(EIP20 _token) public returns (PLCRVoting) {
     PLCRVoting plcr = PLCRVoting(proxyFactory.createProxy(canonizedPLCR, ""));
     plcr.init(_token);
 
@@ -24,7 +24,7 @@ contract PLCRFactory {
     return plcr;
   }
 
-  function newPLCRWithToken(
+  function createNewPLCRWithToken(
     uint _supply,
     string _name,
     uint8 _decimals,
