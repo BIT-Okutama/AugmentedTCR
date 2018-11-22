@@ -1,83 +1,26 @@
 pragma solidity ^0.4.24;
 
 
+import "https://github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "./EIP20Interface.sol";
+import "./Parameterizer.sol";
+import "./PLCRVoting.sol";
 
 contract Registry {
-
-    struct Challenge {
-
-        address challengeCreator;
-        uint incentivePool;
-        mapping (uint256 => mapping (address => bool)) tokenHolders;
-        uint256 challengeExpiryDate;
-
-    }
-
-    struct Proposal { 
-
-        address owner;
-        string proposalDesc;
-        bool isElected;
-        uint256 stakeVal;
-        uint256 proposalExpiryDate;
-        uint256 challengeID;
-
-    }
-
-    uint256 private CURRENT_TOKEN_VAL = 10000;
-    uint256 private MINIMUM_PROPOSAL_FEE = 3;
-    uint256 private MINIMUM_CHALLENGE_STAKE = 3;
-
-    mapping (uint256 => Challenge) challengers;
-    mapping (uint256 => Proposal) candidates;
-
-    uint256 challengerNonce;
-    uint256 candidateNonce;
-
-    constructor () public 
-    MyToken(msg.sender, 100000000) {}
     
-    function challenge(uint256 _proposalID, uint256 _challengeStake) {
-        require(_balances[msg.sender] >= MINIMUM_CHALLENGE_STAKE && 
-                _challengeStake >= _balances[msg.sender]);
-
-        challengers[++challengerNonce] = Challenger(
-            {
-                challengeCreator: msg.sender
-            }
-        );
-    }
-
+    EIP20Interface public token;
+    PLCRVoting public voting;
+    Parameterizer public parameterizer;
+    string public name;
     
-
-    function applyProposal(uint256 _amountToStake, string _proposalDesc) public {
-        require(_balances[msg.sender] >= MINIMUM_PROPOSAL_FEE && 
-                _amountToStake >= _balances[msg.sender]);
-
-        candidates[++candidateNonce] = Candidate(
-            {
-                owner: msg.sender,
-                proposalDescription: _proposalDesc,
-                isElected: false,
-                stakeVal: _amountToStake,
-                proposalExpiryDate: getDateNow() + 2 //Adds 2 days from now.
-            }
-        );
-
-        _balances[msg.sender]-= _amountToStake;
+    function init(address _token, string _name, address _parameterizer, address _voting) public {
+        require(_token != 0 && address(token) == 0);
+        require(_voting != 0 && address(voting) == 0);
+        require(_parameterizer != 0 && address(parameterizer) == 0);
+        
+        token = EIP20Interface(_token);
+        voting = PLCRVoting(_voting);
+        parameterizer = Parameterizer(_parameterizer);
+        name = _name;
     }
-    
-    function getDateNow() public returns(uint256) {
-        return 20181120; //I should use a library for getting dates.
-    }
-
-
-    function buyToken(uint32 quantity) public payable{
-        require(msg.value >= quantity*CURRENT_TOKEN_VAL);
-        _mint(msg.sender, quantity);
-    }
-
-    function changeTokenValue(uint256 value) public {
-        CURRENT_TOKEN_VAL = value;
-    }
-} 
+}
