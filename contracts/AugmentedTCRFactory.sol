@@ -38,6 +38,22 @@ contract AugmentedTCRFactory{
         
     }
     
+    function createNewEnvironmentWithToken(uint256 _supply, string _tokenName, uint8 _decimals, string _symbol, uint256[] _parameters, string _registryName) public returns(Registry reg, Parameterizer param, PLCRVoting plcr) {
     
+        EIP20 token = new EIP20(_supply, _tokenName, _decimals, _symbol);
+        token.transfer(msg.sender, _supply);
+    
+        plcr = PLCRVoting(proxyFactory.createProxy(canonPLCR, ""));
+        plcr.init(token);
+        
+        param = Parameterizer(proxyFactory.createProxy(canonParam, ""));
+        param.init(token, plcr, _parameters);
+        
+        reg = Registry(proxyFactory.createProxy(canonRegistry, ""));
+        reg.init(token, _registryName, param, plcr);
+        
+        emit onCreateEnvironment(msg.sender, param, reg, token, plcr);
+        return (reg, param, plcr);
+    }
     
 }
