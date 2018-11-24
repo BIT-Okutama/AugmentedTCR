@@ -41,4 +41,8 @@ contract Parameterizer {
     function set(string _name, uint256 _value) public {
         params[keccak256(abi.encodePacked(_name))] = _value;
     }
+
+    function get(string _name) public view returns(uint256 value){
+        return params[keccak256(abi.encodePacked(_name))];
+    }
 }
