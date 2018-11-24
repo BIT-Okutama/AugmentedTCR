@@ -20,6 +20,8 @@ contract AugmentedTCRFactory{
         canonRegistry = new Registry();
     }
     
+    event onCreateEnvironment(address origin, Parameterizer param, Registry reg, EIP20 token, PLCRVoting plcr);
+    
     function createNewEnvironment(EIP20 _token, string _registryName, uint256[] _parameters) public returns(Registry reg, Parameterizer param, PLCRVoting plcr) {
         
         plcr = PLCRVoting(proxyFactory.createProxy(canonPLCR, ""));
@@ -31,6 +33,7 @@ contract AugmentedTCRFactory{
         reg = Registry(proxyFactory.createProxy(canonRegistry, ""));
         reg.init(_token, _registryName, param, plcr);
         
+        emit onCreateEnvironment(msg.sender, param, reg, _token, plcr);
         return (reg, param, plcr);
         
     }
