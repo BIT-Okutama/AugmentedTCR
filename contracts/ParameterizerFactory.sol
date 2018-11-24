@@ -6,6 +6,7 @@ import "./PLCRVoting.sol";
 import "./Parameterizer.sol";
 import "./EIP20.sol";
 
+//Deprecated - Consumed by AugmentedTCRFactory contract.
 contract ParameterizerFactory {
 
     PLCRFactory public plcrFactory;

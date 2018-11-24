@@ -6,7 +6,7 @@ import "./Registry.sol";
 import "./PLCRVoting.sol";
 import "./Parameterizer.sol";
 
-
+//Deprecated - Consumed by AugmentedTCRFactory contract.
 contract RegistryFactory {
     
     ParameterizerFactory paramFactory;

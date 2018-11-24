@@ -4,6 +4,8 @@ import "./EIP20.sol";
 import "./PLCRVoting.sol";
 import "./ProxyFactory.sol";
 
+
+//Deprecated - Consumed by AugmentedTCRFactory contract.
 contract PLCRFactory {
 
   event newPLCR(address creator, EIP20 token, PLCRVoting plcr);
