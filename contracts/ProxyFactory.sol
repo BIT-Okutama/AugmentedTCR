@@ -3,7 +3,6 @@ pragma solidity ^0.4.24;
 contract ProxyFactory {
     
     event ProxyDeployed(address proxyAddress, address targetAddress);
-    event ProxiesDeployed(address[] proxyAddresses, address targetAddress);
 
     function createProxy(address _target, bytes _data)
         public
