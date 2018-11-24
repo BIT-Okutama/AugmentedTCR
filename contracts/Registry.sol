@@ -13,7 +13,7 @@ contract Registry {
         address issuer;
         bool isChampion;
         uint challengeID;
-        uint256 balance;
+        uint256 deposit;
         uint256 applicationExpiry;
         uint256 exitTime;
         uint256 exitTimeExpiry;
@@ -51,16 +51,14 @@ contract Registry {
 
     function compete(bytes32 _contenderHash, uint256 _amount, string _extra) external {
         require(_amount >= parameterizer.get("minDeposit") && 
-                !isAlreadyChampion(_contenderHash) && 
+                !isChampion(_contenderHash) && 
                 !existingContender(_contenderHash));
 
-        contenders[_contenderHash] = Contender(
-            {
-                owner: msg.sender,
-                applicationExpiry: block.timestamp.add(parameterizer.get("applyStageLen")),
-                balance: _amount  
-            }
-        );
+        Contender storage _contender = contenders[_contenderHash];
+        _contender.issuer = msg.sender;
+        _contender.deposit = _amount;
+        _contender.applicationExpiry = block.timestamp.add(parameterizer.get("applyStageLen"));
+        
         require(token.transferFrom(contenders[_contenderHash].issuer, this, _amount));
         emit NewContender(_contenderHash, _amount, contenders[_contenderHash].applicationExpiry, _extra, msg.sender);
     }
@@ -69,9 +67,8 @@ contract Registry {
         return contenders[_contenderHash].isChampion;
     }
 
-    function existingContender(bytes32 _contenderHash) view public returns(bool){
+    function existingContender(bytes32 _contenderHash) view public returns(bool exists){
         return contenders[_contenderHash].applicationExpiry > 0; 
     }
 
-    
 }
