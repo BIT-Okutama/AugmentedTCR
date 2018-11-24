@@ -7,7 +7,30 @@ import "./Parameterizer.sol";
 import "./PLCRVoting.sol";
 
 contract Registry {
-    
+    using SafeMath for uint;
+
+    struct Contender {
+        address issuer;
+        bool isChampion;
+        uint256 challengeID;
+        uint256 balance;
+        uint256 applicationExpiry;
+        uint256 exitTime;
+        uint256 exitTimeExpiry;
+    }
+
+    struct Challenge {
+        address challenger;
+        uint256 rewardPool;
+        bool isConcluded;
+        uint256 stake;
+        uint256 totalTokens;
+        mapping(address => bool) rewardClaims;
+    }
+
+    mapping(uint256 => Contender) public contenders;
+    mapping(uint256 => Challenge) public challenges;
+
     EIP20Interface public token;
     PLCRVoting public voting;
     Parameterizer public parameterizer;
