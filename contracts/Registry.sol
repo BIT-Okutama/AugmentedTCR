@@ -15,8 +15,6 @@ contract Registry {
         uint challengeID;
         uint256 stake;
         uint256 applicationExpiry;
-        uint256 exitTime;
-        uint256 exitTimeExpiry;
     }
 
     struct Challenge {
@@ -38,6 +36,7 @@ contract Registry {
 
     event NewContender(address indexed issuer, bytes32 indexed contenderHash, uint256 stake, uint256 applicationExpiry, string extra);
     event Deposit(address indexed issuer, bytes32 indexed contenderHash, uint256 depositAmount, uint256 total);
+    event Withdrawal(address indexed issuer, bytes32 indexed contenderHash, uint256 withdrawAmount, uint256 total);
 
     function init(address _token, string _name, address _parameterizer, address _voting) public {
         require(_token != 0 && address(token) == 0);
@@ -49,8 +48,10 @@ contract Registry {
         parameterizer = Parameterizer(_parameterizer);
         name = _name;
     }
+    
+    //Contender Functions
 
-    function compete(bytes32 _contenderHash, uint256 _amount, string _extra) external {
+    function register(bytes32 _contenderHash, uint256 _amount, string _extra) external {
         require(_amount >= parameterizer.get("minDeposit") && 
                 !isChampion(_contenderHash) && 
                 !existingContender(_contenderHash));
@@ -64,14 +65,28 @@ contract Registry {
         emit NewContender(msg.sender, _contenderHash, _amount, contenders[_contenderHash].applicationExpiry, _extra);
     }
 
-    function deposit(bytes _contenderHash, uint256 _amount) external {
+    function deposit(bytes32 _contenderHash, uint256 _amount) external {
         Contender storage contender = contenders[_contenderHash];
-        require(contender.issuer == msg.sender);
-        require(token.transferFrom(msg.sender, this, _amount));
+        require(contender.issuer == msg.sender && 
+                token.transferFrom(msg.sender, this, _amount));
         contender.deposit += _amount;
 
         emit Deposit(msg.sender, _contenderHash, _amount, contender.deposit);
     }
+
+    function withdraw(bytes32 _contenderHash, uint256 _amount) external {
+        Contender storage contender = contenders[_contenderHash];
+
+        require(contender.owner == msg.sender &&
+                contender.deposit >= _amount  &&
+                contender.deposit - _amount >= parameterizer.get("minDeposit") &&
+                token.transfer(msg.sender, _amount));
+
+        contender.deposit -= _amount;
+        emit Withdrawal(msg.sender, _contenderHash, _amount, contender.deposit);
+    }
+
+    //Challenger Functions
 
     function isChampion(bytes32 _contenderHash) view public returns(bool){
         return contenders[_contenderHash].isChampion;
