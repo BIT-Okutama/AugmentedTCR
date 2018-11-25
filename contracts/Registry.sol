@@ -41,6 +41,7 @@ contract Registry {
     event ContenderRemoved(bytes32 indexed contenderHash);
 
     event NewChallenge(address indexed challenger, bytes32 indexed contenderHash, uint challengeID, string evidence, uint commitEnd, uint revealEnd);
+    event NewChampion(bytes32 indexed contenderHash);
 
     function init(address _token, string _name, address _parameterizer, address _voting) public {
         require(_token != 0 && address(token) == 0);
@@ -128,6 +129,41 @@ contract Registry {
         emit NewChallenge(msg.sender, _contenderHash, pollID, _evidence,  commitEnd, revealEnd);
     }
 
+    function updateStatus(bytes32 _contenderHash) public {
+        if(canBecomeChampion(_contenderHash)) crownAsChampion(_contenderHash);
+        else if(challengeCanBeConcluded(_contenderHash)) concludeChallange(_contenderHash);
+        else revert();
+    }
+
+    function canBecomeChampion(bytes32 _contenderHash) view public returns(bool){
+        uint256 challengeID = contenders[_contenderHash].challengeID;
+
+        if ((challengeID == 0 || challenges[challengeID].resolved == true) &&
+            existingContender(_contenderHash) &&
+            contenders[_contenderHash].applicationExpiry < now &&
+            !isChampion(_contenderHash)) return true;
+        else return false;
+    }
+
+    function crownAsChampion(bytes32 _contenderHash) private {
+        Contender storage contender = contenders[_contenderHash];
+
+        if(!contender.isChampion) {
+            contender.isChampion = true;
+            emit NewChampion(_contenderHash);
+        }
+    }
+
+    function challengeCanBeConcluded(bytes32 _contenderHash) view public returns(bool) {
+        uint256 challengeID = contenders[_contenderHash].challengeID;
+        if(challengeID > 0 && !challenges[challengeID].isConcluded) return voting.pollEnded(challengeID);
+        else false;
+    }
+
+    function concludeChallenge() private {
+
+    }
+
     function backtrackState(bytes32 _contenderHash) private {
 
         Contender storage contender = contenders[_contenderHash];
@@ -140,9 +176,6 @@ contract Registry {
 
         delete contenders[_contenderHash];
     }
-
-    
-
 
     function isChampion(bytes32 _contenderHash) view public returns(bool){
         return contenders[_contenderHash].isChampion;
