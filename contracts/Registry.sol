@@ -37,6 +37,10 @@ contract Registry {
     event NewContender(address indexed issuer, bytes32 indexed contenderHash, uint256 stake, uint256 applicationExpiry, string extra);
     event Deposit(address indexed issuer, bytes32 indexed contenderHash, uint256 depositAmount, uint256 total);
     event Withdrawal(address indexed issuer, bytes32 indexed contenderHash, uint256 withdrawAmount, uint256 total);
+    event ChampionRemoved(bytes32 indexed contenderHash);
+    event ContenderRemoved(bytes32 indexed contenderHash);
+
+    event NewChallenge(address indexed challenger, bytes32 indexed contenderHash, uint challengeID, string evidence, uint commitEnd, uint revealEnd);
 
     function init(address _token, string _name, address _parameterizer, address _voting) public {
         require(_token != 0 && address(token) == 0);
@@ -87,6 +91,58 @@ contract Registry {
     }
 
     //Challenger Functions
+
+    function challenge(bytes32 _contenderHash, string _evidence) external returns(uint256 challengeID){
+        Contender storage contender = contenders[_contenderHash];
+        
+        
+        require((existingContender(_contenderHash) || contender.isChampion) &&
+                (contender.challengeID == 0 || challenges[contender.challengeID].resolved));
+
+        uint256 minDeposit = parameterizer.get("minDeposit");
+
+        if(contender.deposit < minDeposit) {
+            backtrackState(_contenderHash);
+            emit TouchedAndRemoved(_contenderHash);
+            return 0;
+        }
+
+        uint256 pollID = voting.startPoll(
+            parameterizer.get("voteQuorum"),
+            parameterizer.get("commitStageLen"),
+            parameterizer.get("revealStageLen")
+        );
+
+
+        uint256 oneHundred = 100; 
+        Challenge storage challenge = challenges[pollID];
+        challenge.challenger = msg.sender;
+        challenge.rewardPool = ((oneHundred.sub(parameterizer.get("dispensationPct"))).mul(minDeposit)).div(100);
+        challenge.stake = minDeposit;
+        challenge.totalTokens = 0;
+        
+        contender.challengeID = pollID;
+        contender.deposit -= minDeposit;
+
+        require(token.transferFrom(msg.sender, this, minDeposit));
+        emit NewChallenge(msg.sender, _contenderHash, pollID, _evidence,  commitEnd, revealEnd);
+    }
+
+    function backtrackState(bytes32 _contenderHash) private {
+
+        Contender storage contender = contenders[_contenderHash];
+        bool contenderState = contender.isChampion;
+
+        if(contender.deposit > 0) require(token.transfer(contender.issuer, contender.deposit));
+        
+        if(contenderState) emit _ChampionRemoved(_contenderHash);
+        else emit ContenderRemoved(_contenderHash);
+
+        delete contenders[_contenderHash];
+    }
+
+    
+
 
     function isChampion(bytes32 _contenderHash) view public returns(bool){
         return contenders[_contenderHash].isChampion;
