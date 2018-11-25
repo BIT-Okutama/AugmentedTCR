@@ -13,7 +13,7 @@ contract Registry {
         address issuer;
         bool isChampion;
         uint challengeID;
-        uint256 deposit;
+        uint256 stake;
         uint256 applicationExpiry;
         uint256 exitTime;
         uint256 exitTimeExpiry;
@@ -36,8 +36,9 @@ contract Registry {
     Parameterizer public parameterizer;
     string public name;
 
-    event NewContender(bytes32 indexed contenderHash, uint256 stake, uint256 applicationExpiry, string extra, address indexed issuer);
-    
+    event NewContender(address indexed issuer, bytes32 indexed contenderHash, uint256 stake, uint256 applicationExpiry, string extra);
+    event Deposit(address indexed issuer, bytes32 indexed contenderHash, uint256 depositAmount, uint256 total);
+
     function init(address _token, string _name, address _parameterizer, address _voting) public {
         require(_token != 0 && address(token) == 0);
         require(_voting != 0 && address(voting) == 0);
@@ -54,13 +55,22 @@ contract Registry {
                 !isChampion(_contenderHash) && 
                 !existingContender(_contenderHash));
 
-        Contender storage _contender = contenders[_contenderHash];
-        _contender.issuer = msg.sender;
-        _contender.deposit = _amount;
-        _contender.applicationExpiry = block.timestamp.add(parameterizer.get("applyStageLen"));
+        Contender storage contender = contenders[_contenderHash];
+        contender.issuer = msg.sender;
+        contender.stake = _amount;
+        contender.applicationExpiry = block.timestamp.add(parameterizer.get("applyStageLen"));
         
         require(token.transferFrom(contenders[_contenderHash].issuer, this, _amount));
-        emit NewContender(_contenderHash, _amount, contenders[_contenderHash].applicationExpiry, _extra, msg.sender);
+        emit NewContender(msg.sender, _contenderHash, _amount, contenders[_contenderHash].applicationExpiry, _extra);
+    }
+
+    function deposit(bytes _contenderHash, uint256 _amount) external {
+        Contender storage contender = contenders[_contenderHash];
+        require(contender.issuer == msg.sender);
+        require(token.transferFrom(msg.sender, this, _amount));
+        contender.deposit += _amount;
+
+        emit Deposit(msg.sender, _contenderHash, _amount, contender.deposit);
     }
 
     function isChampion(bytes32 _contenderHash) view public returns(bool){
