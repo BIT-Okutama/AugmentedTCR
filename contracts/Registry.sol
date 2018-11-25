@@ -43,6 +43,8 @@ contract Registry {
     event NewChampion(bytes32 indexed contenderHash);
     event ChallengerLost(uint256 challengeID, bytes32 indexed contenderHash, uint256 rewardPool, uint256 totalTokens);
     event ChallengerWon(uint256 challengeID, bytes32 indexed contenderHash, uint256 rewardPool, uint256 totalTokens);
+    event RewardClaimed(address indexed voter, uint256 indexed challengeID, uint256 reward);
+
 
     function init(address _token, string _name, address _parameterizer, address _voting) public {
         require((_token != 0 && address(token) == 0) &&
@@ -54,6 +56,9 @@ contract Registry {
         parameterizer = Parameterizer(_parameterizer);
         name = _name;
     }
+
+    //Pending changes: PLCRVoting -> voteOption to boolean
+    //To be reviewed:  claimReward(), reward can be viewed only after claiming?
     
     //Contender Functions
 
@@ -130,10 +135,40 @@ contract Registry {
         emit NewChallenge(msg.sender, _contenderHash, pollID, _evidence,  commitEnd, revealEnd);
     }
 
+    //Needs to be looped
     function updateStatus(bytes32 _contenderHash) public {
         if(canBecomeChampion(_contenderHash)) crownAsChampion(_contenderHash);
         else if(challengeCanBeConcluded(_contenderHash)) concludeChallange(_contenderHash);
         else revert();
+    }
+
+    
+    //Needs to be looped
+    function claimReward(uint _challengeID) public {
+        Challange storage challenge = challenges[_challengeID];
+
+        require(challenge.rewardClaims[msg.sender] == false &&
+                challenge.isConcluded == true);
+
+        uint256 voterStake = voting.getNumPassingTokens(msg.sender, _challengeID);
+        uint256 reward = voterStake.mul(challenge.rewardPool).div(challenge.totalTokens);
+        
+        challenge.totalTokens -= voterStake;
+        challenge.rewardPool -= reward;
+
+        challenge.rewardClaims[msg.sender] = true;
+        require(token.transfer(msg.sender, reward));
+
+        emit RewardClaimed(msg.sender, _challengeID, reward);
+
+    }
+
+    function viewVoterReward(address _voter, uint _challengeID) public view returns(uint256) {
+        uint256 voterStake = voting.getNumPassingTokens(_voter, _challengeID);
+        uint256 total = challenges[_challengeID].totalTokens;
+        uint256 rewardPool = challenged[_challengeID].rewardPool;
+
+        return voterStake.mul(rewardPool).div(total);
     }
 
     function canBecomeChampion(bytes32 _contenderHash) view public returns(bool){
@@ -194,7 +229,6 @@ contract Registry {
 
         Contender storage contender = contenders[_contenderHash];
         bool contenderState = contender.isChampion;
-
         if(contender.deposit > 0) require(token.transfer(contender.issuer, contender.deposit));
         
         if(contenderState) emit _ChampionRemoved(_contenderHash);
