@@ -147,7 +147,7 @@ contract Registry {
     function claimReward(uint _challengeID) public {
         Challange storage challenge = challenges[_challengeID];
 
-        require(challenge.rewardClaims[msg.sender] == false &&
+        require(rewardClaimStatus(_challengeID, msg.sender) == false &&
                 challenge.isConcluded == true);
 
         uint256 voterStake = voting.getNumPassingTokens(msg.sender, _challengeID);
@@ -169,6 +169,10 @@ contract Registry {
         uint256 rewardPool = challenged[_challengeID].rewardPool;
 
         return voterStake.mul(rewardPool).div(total);
+    }
+
+    function rewardClaimStatus(uint256 _challengeID, address _voter) public view returns(bool) {
+        return challenges[_challengeID].rewardClaims[_voter];
     }
 
     function canBecomeChampion(bytes32 _contenderHash) view public returns(bool){
