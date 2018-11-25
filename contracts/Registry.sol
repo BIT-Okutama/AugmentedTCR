@@ -39,14 +39,15 @@ contract Registry {
     event Withdrawal(address indexed issuer, bytes32 indexed contenderHash, uint256 withdrawAmount, uint256 total);
     event ChampionRemoved(bytes32 indexed contenderHash);
     event ContenderRemoved(bytes32 indexed contenderHash);
-
     event NewChallenge(address indexed challenger, bytes32 indexed contenderHash, uint challengeID, string evidence, uint commitEnd, uint revealEnd);
     event NewChampion(bytes32 indexed contenderHash);
+    event ChallengerLost(uint256 challengeID, bytes32 indexed contenderHash, uint256 rewardPool, uint256 totalTokens);
+    event ChallengerWon(uint256 challengeID, bytes32 indexed contenderHash, uint256 rewardPool, uint256 totalTokens);
 
     function init(address _token, string _name, address _parameterizer, address _voting) public {
-        require(_token != 0 && address(token) == 0);
-        require(_voting != 0 && address(voting) == 0);
-        require(_parameterizer != 0 && address(parameterizer) == 0);
+        require((_token != 0 && address(token) == 0) &&
+                (_voting != 0 && address(voting) == 0) &&
+                (_parameterizer != 0 && address(parameterizer) == 0));
         
         token = EIP20Interface(_token);
         voting = PLCRVoting(_voting);
@@ -138,7 +139,7 @@ contract Registry {
     function canBecomeChampion(bytes32 _contenderHash) view public returns(bool){
         uint256 challengeID = contenders[_contenderHash].challengeID;
 
-        if ((challengeID == 0 || challenges[challengeID].resolved == true) &&
+        if ((challengeID == 0 || challenges[challengeID].isConcluded == true) &&
             existingContender(_contenderHash) &&
             contenders[_contenderHash].applicationExpiry < now &&
             !isChampion(_contenderHash)) return true;
@@ -160,8 +161,33 @@ contract Registry {
         else false;
     }
 
-    function concludeChallenge() private {
+    function concludeChallenge(bytes32 _contenderHash) private {
+        uint256 challengeID = contenders[_contenderHash].challengeID;
+        Challenge storage challenge = challenges[challengeID];
+        uint256 reward = calculateReward(challengeID);
+        
+        challenge.isConcluded = true;
 
+        challenge.totalTokens = voting.getTotalNumberOfTokensForWinnningOption(challengeID);
+
+        if(voting.isPassed(challengeID)){
+            crownAsChampion(_contenderHash);
+            contenders[_contenderHash].deposit += reward;
+            emit ChallengerLost(challengeID, _contenderHash, challenge.rewardPool, challenge.totalTokens);
+        }
+        else {
+            backtrackState(_contenderHash);
+            require(token.transfer(challenges[challengeID].challenger, reward));
+            emit ChallengerWon(challengeID, _contenderHash, challenge.rewardPool, challenge.totalTokens);
+        }
+    }
+
+    function calculateReward(uint _challengeID) private view returns(uint256) {
+        
+        if(voting.getTotalNumberOfTokensForWinnningOption(_challengeID) == 0) 
+            return 2 * challenges[_challengeID].stake;
+        else
+            return (2 * challenges[_challengeID].stake) - challenges[_challengeID].rewardPool;
     }
 
     function backtrackState(bytes32 _contenderHash) private {
