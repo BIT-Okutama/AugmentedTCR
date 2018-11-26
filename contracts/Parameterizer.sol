@@ -19,7 +19,7 @@ contract Parameterizer {
         address pIssuer;
         uint256 pChallengeID;
         uint256 proposalExpiry;
-        string paramDesc;
+        string paramName;
         uint256 paramVal;
         uint256 pDeposit;
         uint256 processBy;
@@ -31,14 +31,10 @@ contract Parameterizer {
     
     EIP20Interface public token;
     PLCRVoting public voting;
+    uint256 public PROCESSBY = 604800;
     
-    event _ReparameterizationProposal(string name, uint value, bytes32 propID, uint deposit, uint appEndDate, address indexed proposer);
-    event _NewChallenge(bytes32 indexed propID, uint challengeID, uint commitEndDate, uint revealEndDate, address indexed challenger);
-    event _ProposalAccepted(bytes32 indexed propID, string name, uint value);
-    event _ProposalExpired(bytes32 indexed propID);
-    event _ChallengeSucceeded(bytes32 indexed propID, uint indexed challengeID, uint rewardPool, uint totalTokens);
-    event _ChallengeFailed(bytes32 indexed propID, uint indexed challengeID, uint rewardPool, uint totalTokens);
-    event _RewardClaimed(uint indexed challengeID, uint reward, address indexed voter);
+    event NewProposal(address indexed issuer, bytes32 propID, string name, uint value, uint deposit, uint appEndDate);
+    
     
     function init(address _token, address _plcr, uint256[] _parameters) public {
         
@@ -65,7 +61,35 @@ contract Parameterizer {
         
     }
 
-    
+    function proposeAdjustment(string _paramName, uint _value) public returns (bytes32) {
+        uint minDeposit = get("pMinDeposit");
+        bytes32 propID = keccak256(abi.encodePacked(_name, _value));
+
+        if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("dispensationPct")) ||
+            keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("pDispensationPct"))) {
+            require(_value <= 100);
+        }
+
+        require(!propExists(propID)); // Forbid duplicate proposals
+        require(get(_name) != _value); // Forbid NOOP reparameterizations
+
+        // attach name and value to pollID
+        Proposal storage proposal = proposals[propID];
+
+        proposal.issuer = msg.sender;
+        proposal.challengeID = 0;
+        proposal.appExpiry = now.add(get("pApplyStageLen"));
+        proposal.deposit = minDeposit;
+        proposal.paramName = _name;
+        proposal.processBy = now.add(get("pApplyStageLen")).add(get("pCommitStageLen")).add(get("pRevealStageLen")).add(PROCESSBY);
+        proposal.paramVal = _value;
+
+        require(token.transferFrom(msg.sender, this, minDeposit)); // escrow tokens (deposit amt)
+        emit NewProposal(msg.sender, propID, _name, _value, minDeposit, proposal.appExpiry);
+        return propID;
+    }
+
+
     
     function set(string _name, uint256 _value) public {
         params[keccak256(abi.encodePacked(_name))] = _value;
