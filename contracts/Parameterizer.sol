@@ -11,7 +11,7 @@ contract Parameterizer {
         uint256 pIncentivePool;
         bool pIsConcluded;
         uint256 pStake;
-        uint256 wonTokens;
+        uint256 pWonTokens;
         mapping(address => bool) incentiveClaims;
     }
 
@@ -34,7 +34,7 @@ contract Parameterizer {
     uint256 public PROCESSBY = 604800;
     
     event NewProposal(address indexed issuer, bytes32 propID, string name, uint value, uint deposit, uint appEndDate);
-    
+    event NewProposalChallenge(address indexed challenger, bytes32 indexed propID, uint challengeID, uint commitEndDate, uint revealEndDate);
     
     function init(address _token, address _plcr, uint256[] _parameters) public {
         
@@ -70,26 +70,55 @@ contract Parameterizer {
             require(_value <= 100);
         }
 
-        require(!propExists(propID)); // Forbid duplicate proposals
-        require(get(_name) != _value); // Forbid NOOP reparameterizations
+        require(!exisitingProposal(propID)); 
+        require(get(_name) != _value); 
 
-        // attach name and value to pollID
         Proposal storage proposal = proposals[propID];
 
         proposal.issuer = msg.sender;
-        proposal.challengeID = 0;
+        proposal.challengeID = 0; //i will check this next time. 
         proposal.appExpiry = now.add(get("pApplyStageLen"));
         proposal.deposit = minDeposit;
         proposal.paramName = _name;
         proposal.processBy = now.add(get("pApplyStageLen")).add(get("pCommitStageLen")).add(get("pRevealStageLen")).add(PROCESSBY);
         proposal.paramVal = _value;
 
-        require(token.transferFrom(msg.sender, this, minDeposit)); // escrow tokens (deposit amt)
+        require(token.transferFrom(msg.sender, this, minDeposit));
         emit NewProposal(msg.sender, propID, _name, _value, minDeposit, proposal.appExpiry);
         return propID;
     }
 
+    function challengeProposal(bytes32 _proposalID) public returns (uint256) {
+        ParamProposal memory prop = proposals[_proposalID];
+        uint minDeposit = prop.deposit;
 
+        require(exisitingProposal(_proposalID) && prop.challengeID == 0);
+        
+        proposals[_proposalID].challengeID = voting.startPoll(
+            get("pVoteQuorum"),
+            get("pCommitStageLen"),
+            get("pRevealStageLen")
+        );
+
+        PChallenge challenge = pChallenges[pollID];
+        challenge.pChallenger = msg.sender;
+        challenge.pIncentivePool = SafeMath.sub(100, get("pDispensationPct")).mul(deposit).div(100);
+        challenge.pStake = minDeposit;
+        challenge.pIsConcluded = false; //i will check this next time. 
+        challenge.pWonTokens = 0; //i will check this next time.
+    
+        require(token.transferFrom(msg.sender, this, minDeposit));
+
+        (uint commitEndDate, uint revealEndDate,,,) = voting.pollMap(pollID);
+        emit NewProposalChallenge(msg.sender, _propID, pollID, commitEndDate, revealEndDate);
+        return pollID;
+    }
+
+    
+    
+    function exisitingProposal(bytes32 _propID) view public returns(bool) {
+        return proposals[_propID].processBy > 0;
+    }
     
     function set(string _name, uint256 _value) public {
         params[keccak256(abi.encodePacked(_name))] = _value;

@@ -115,12 +115,11 @@ contract Registry {
             return 0;
         }
 
-        uint256 pollID = voting.startPoll(
+        contender.challengeID = voting.startPoll(
             parameterizer.get("voteQuorum"),
             parameterizer.get("commitStageLen"),
             parameterizer.get("revealStageLen")
         );
-
 
         uint256 oneHundred = 100; 
         Challenge storage challenge = challenges[pollID];
@@ -129,10 +128,8 @@ contract Registry {
         challenge.stake = minDeposit;
         challenge.wonTokens = 0;
         
-        contender.challengeID = pollID;
         contender.deposit -= minDeposit;
         (uint commitEndDate, uint revealEndDate,,,) = voting.pollMap(pollID);
-        
         
         require(token.transferFrom(msg.sender, this, minDeposit));
         emit NewChallenge(msg.sender, _contenderHash, pollID, _evidence,  commitEndDate, revealEndDate);
