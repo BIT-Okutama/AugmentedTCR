@@ -35,6 +35,11 @@ contract Parameterizer {
     
     event NewProposal(address indexed issuer, bytes32 propID, string name, uint value, uint deposit, uint appEndDate);
     event NewProposalChallenge(address indexed challenger, bytes32 indexed propID, uint challengeID, uint commitEndDate, uint revealEndDate);
+    event ProposalPassed(bytes32 indexed propID, string name, uint value);
+    event _ProposalExpired(bytes32 indexed propID);
+    event _ChallengeSucceeded(bytes32 indexed propID, uint indexed challengeID, uint incentivePool, uint wonTokens);
+    event _ChallengeFailed(bytes32 indexed propID, uint indexed challengeID, uint incentivePool, uint wonTokens);
+    event _RewardClaimed( address indexed voter, uint indexed challengeID, uint incentive);
     
     function init(address _token, address _plcr, uint256[] _parameters) public {
         
@@ -77,7 +82,7 @@ contract Parameterizer {
 
         proposal.issuer = msg.sender;
         proposal.challengeID = 0; //i will check this next time. 
-        proposal.appExpiry = now.add(get("pApplyStageLen"));
+        proposal.proposalExpiry = now.add(get("pApplyStageLen"));
         proposal.deposit = minDeposit;
         proposal.paramName = _name;
         proposal.processBy = now.add(get("pApplyStageLen")).add(get("pCommitStageLen")).add(get("pRevealStageLen")).add(PROCESSBY);
@@ -114,6 +119,51 @@ contract Parameterizer {
         return pollID;
     }
 
+    function processProposal(bytes32 _proposalID) public {
+        Proposal storage proposal = proposals[_propID];
+
+        if (proposalPassed(_propID)) {
+            set(proposal.paramName, proposal.paramName);
+            emit ProposalPassed(_proposalID, proposal.paramName, proposal.paramVal);
+            delete proposals[_propID];
+            require(token.transfer(proposal.pIssuer, proposal.pDeposit));
+        } 
+        else if (challengeCanBeConcluded(_proposalID)) {
+            concludeChallenge(_proposalID);
+        } 
+        else if (now > proposal.processBy) {
+            emit _ProposalExpired(_proposalID);
+            delete proposals[_proposalID];
+            require(token.transfer(proposal.pIssuer, proposal.pDeposit));
+        }
+        else revert();
+
+        assert(get("dispensationPct") <= 100);
+        assert(get("pDispensationPct") <= 100);
+        now.add(get("pApplyStageLen")).add(get("pCommitStageLen")).add(get("pRevealStageLen")).add(PROCESSBY);
+
+        delete proposals[_propID];
+    }
+
+    function proposalPassed(bytes32 _proposalID) view public returns (bool) {
+        Proposal memory proposal = proposals[_propID];
+
+        return (now > proposal.proposalExpiry &&
+                now < proposal.processBy && 
+                proposal.pChallengeID == 0);
+    }
+
+    function challengeCanBeConcluded(bytes32 _proposalID) view public returns (bool) {
+        Proposal memory proposal = proposals[_propID];
+
+        return (proposal.pChallengeID > 0 &&
+                challenges[proposal.challengeID].pIsConcluded == false &&
+                voting.pollEnded(proposal.pChallengeID));
+    }
+
+    function concludeChallenge(bytes32 _proposalID) private {
+        //Continue Here...
+    }
     
     
     function exisitingProposal(bytes32 _propID) view public returns(bool) {
