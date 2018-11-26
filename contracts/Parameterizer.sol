@@ -6,12 +6,39 @@ import "https://github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/Saf
 
 contract Parameterizer {
     
+    struct PChallenge {
+        address pChallenger;
+        uint256 pIncentivePool;
+        bool pIsConcluded;
+        uint256 pStake;
+        uint256 wonTokens;
+        mapping(address => bool) incentiveClaims;
+    }
+
+    struct Proposal {
+        address pIssuer;
+        uint256 pChallengeID;
+        uint256 proposalExpiry;
+        string paramDesc;
+        uint256 paramVal;
+        uint256 pDeposit;
+        uint256 processBy;
+    }
     
     mapping(bytes32 => uint) public params;
+    mapping(uint256 => Challenge) public challenges;
+    mapping(uint256 => ParamProposal) public proposals;
     
     EIP20Interface public token;
     PLCRVoting public voting;
     
+    event _ReparameterizationProposal(string name, uint value, bytes32 propID, uint deposit, uint appEndDate, address indexed proposer);
+    event _NewChallenge(bytes32 indexed propID, uint challengeID, uint commitEndDate, uint revealEndDate, address indexed challenger);
+    event _ProposalAccepted(bytes32 indexed propID, string name, uint value);
+    event _ProposalExpired(bytes32 indexed propID);
+    event _ChallengeSucceeded(bytes32 indexed propID, uint indexed challengeID, uint rewardPool, uint totalTokens);
+    event _ChallengeFailed(bytes32 indexed propID, uint indexed challengeID, uint rewardPool, uint totalTokens);
+    event _RewardClaimed(uint indexed challengeID, uint reward, address indexed voter);
     
     function init(address _token, address _plcr, uint256[] _parameters) public {
         
@@ -37,6 +64,8 @@ contract Parameterizer {
         set("exitPeriodLen", _parameters[13]);
         
     }
+
+    
     
     function set(string _name, uint256 _value) public {
         params[keccak256(abi.encodePacked(_name))] = _value;
