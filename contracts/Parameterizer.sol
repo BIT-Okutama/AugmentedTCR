@@ -164,6 +164,10 @@ contract Parameterizer {
         require(token.transfer(msg.sender, incentive));
     }
 
+    function batchClaimIncentives(uint256[] _challengeIDs) public {
+        for(uint256 = 0; i < _challengeIDs.length; i++) claimIncentive(_challengeIDs[i]);
+    }
+
     function viewVoterIncentive(address _voter, uint _challengeID) public view returns(uint256) {
         uint256 voterStake = voting.getNumPassingTokens(_voter, _challengeID);
         uint256 wonTokens = challenges[_challengeID].pWonTokens;
