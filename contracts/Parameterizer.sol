@@ -35,6 +35,8 @@ contract Parameterizer {
     
     event NewProposal(address indexed issuer, bytes32 proposalID, string name, uint value, uint deposit, uint appEndDate);
     event NewProposalChallenge(address indexed challenger, bytes32 indexed proposalID, uint challengeID, uint commitEndDate, uint revealEndDate);
+    event PChallengerWon(bytes32 indexed proposalID, uint indexed challengeID, uint incentivePool, uint wonTokens);
+    event PChallengerLost(bytes32 indexed proposalID, uint indexed challengeID, uint incentivePool, uint wonTokens);
     event ProposalPassed(bytes32 indexed proposalID, string name, uint value);
     event ProposalExpired(bytes32 indexed proposalID);
     event IncentiveClaimed( address indexed voter, uint indexed challengeID, uint incentive);
@@ -176,7 +178,25 @@ contract Parameterizer {
 
     //i will review this 
     function concludeChallenge(bytes32 _proposalID) private {
-        
+        ParamProposal memory proposal = proposals[_proposalID];
+        PChallenge storage challenge = challenges[proposal.pChallengeID];
+
+        uint reward = calculateIncentive(proposal.pChallengeID);
+
+        challenge.pWonTokens = voting.getTotalNumberOfTokensForWinningOption(proposal.challengeID);
+        challenge.pIsConcluded = true;
+
+        if (voting.isPassed(proposal.pChallengeID)) { 
+            if(proposal.processBy > now) {
+                set(proposal.paramName, proposal.paramVal);
+            }
+            emit PChallengerLost(_proposalID, proposal.pChallengeID, challenge.pIncentivePool, challenge.pWonTokens);
+            require(token.transfer(prop.owner, reward));
+        }
+        else {
+            emit PChallengerWon(_proposalID, proposal.pChallengeID, challenge.pIncentivePool, challenge.pWonTokens);
+            require(token.transfer(challenges.pChallenger, reward));
+        }
     }
 
     function calculateIncentive(uint256 _challengeID) public view returns (uint256) {
