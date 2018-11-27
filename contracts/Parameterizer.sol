@@ -12,7 +12,7 @@ contract Parameterizer {
         bool pIsConcluded;
         uint256 pStake;
         uint256 pWonTokens;
-        mapping(address => bool) incentiveClaims;
+        mapping(address => bool) pIncentiveClaims;
     }
 
     struct Proposal {
@@ -33,13 +33,11 @@ contract Parameterizer {
     PLCRVoting public voting;
     uint256 public PROCESSBY = 604800;
     
-    event NewProposal(address indexed issuer, bytes32 propID, string name, uint value, uint deposit, uint appEndDate);
-    event NewProposalChallenge(address indexed challenger, bytes32 indexed propID, uint challengeID, uint commitEndDate, uint revealEndDate);
-    event ProposalPassed(bytes32 indexed propID, string name, uint value);
-    event _ProposalExpired(bytes32 indexed propID);
-    event _ChallengeSucceeded(bytes32 indexed propID, uint indexed challengeID, uint incentivePool, uint wonTokens);
-    event _ChallengeFailed(bytes32 indexed propID, uint indexed challengeID, uint incentivePool, uint wonTokens);
-    event _RewardClaimed( address indexed voter, uint indexed challengeID, uint incentive);
+    event NewProposal(address indexed issuer, bytes32 proposalID, string name, uint value, uint deposit, uint appEndDate);
+    event NewProposalChallenge(address indexed challenger, bytes32 indexed proposalID, uint challengeID, uint commitEndDate, uint revealEndDate);
+    event ProposalPassed(bytes32 indexed proposalID, string name, uint value);
+    event ProposalExpired(bytes32 indexed proposalID);
+    event IncentiveClaimed( address indexed voter, uint indexed challengeID, uint incentive);
     
     function init(address _token, address _plcr, uint256[] _parameters) public {
         
@@ -80,10 +78,10 @@ contract Parameterizer {
 
         Proposal storage proposal = proposals[propID];
 
-        proposal.issuer = msg.sender;
-        proposal.challengeID = 0; //i will check this next time. 
+        proposal.pIssuer = msg.sender;
+        proposal.pChallengeID = 0; //i will check if omittable. 
         proposal.proposalExpiry = now.add(get("pApplyStageLen"));
-        proposal.deposit = minDeposit;
+        proposal.pDeposit = minDeposit;
         proposal.paramName = _name;
         proposal.processBy = now.add(get("pApplyStageLen")).add(get("pCommitStageLen")).add(get("pRevealStageLen")).add(PROCESSBY);
         proposal.paramVal = _value;
@@ -109,8 +107,8 @@ contract Parameterizer {
         challenge.pChallenger = msg.sender;
         challenge.pIncentivePool = SafeMath.sub(100, get("pDispensationPct")).mul(deposit).div(100);
         challenge.pStake = minDeposit;
-        challenge.pIsConcluded = false; //i will check this next time. 
-        challenge.pWonTokens = 0; //i will check this next time.
+        challenge.pIsConcluded = false; //i will check if omittable. 
+        challenge.pWonTokens = 0; //i will check if omittable. 
     
         require(token.transferFrom(msg.sender, this, minDeposit));
 
@@ -119,7 +117,8 @@ contract Parameterizer {
         return pollID;
     }
 
-    function processProposal(bytes32 _proposalID) public {
+    //i will review this 
+    function processProposalResult(bytes32 _proposalID) public {
         Proposal storage proposal = proposals[_propID];
 
         if (proposalPassed(_propID)) {
@@ -145,6 +144,8 @@ contract Parameterizer {
         delete proposals[_propID];
     }
 
+    
+
     function proposalPassed(bytes32 _proposalID) view public returns (bool) {
         Proposal memory proposal = proposals[_propID];
 
@@ -161,11 +162,6 @@ contract Parameterizer {
                 voting.pollEnded(proposal.pChallengeID));
     }
 
-    function concludeChallenge(bytes32 _proposalID) private {
-        //Continue Here...
-    }
-    
-    
     function exisitingProposal(bytes32 _propID) view public returns(bool) {
         return proposals[_propID].processBy > 0;
     }
@@ -176,5 +172,18 @@ contract Parameterizer {
 
     function get(string _name) public view returns(uint256 value){
         return params[keccak256(abi.encodePacked(_name))];
+    }
+
+    //i will review this 
+    function concludeChallenge(bytes32 _proposalID) private {
+        
+    }
+
+    function calculateIncentive(uint256 _challengeID) public view returns (uint256) {
+        if(voting.getTotalNumberOfTokensForWinningOption(_challengeID) == 0) {
+            return 2 * challenges[_challengeID].stake;
+        }
+
+        return (2 * challenges[_challengeID].pStake) - challenges[_challengeID].pIncentivePool;
     }
 }

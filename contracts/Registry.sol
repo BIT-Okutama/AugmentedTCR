@@ -43,7 +43,7 @@ contract Registry {
     event NewChampion(bytes32 indexed contenderHash);
     event ChallengerLost(uint256 challengeID, bytes32 indexed contenderHash, uint256 incentivePoo, uint256 wonTokens);
     event ChallengerWon(uint256 challengeID, bytes32 indexed contenderHash, uint256 incentivePoo, uint256 wonTokens);
-    event RewardClaimed(address indexed voter, uint256 indexed challengeID, uint256 reward);
+    event IncentiveClaimed(address indexed voter, uint256 indexed challengeID, uint256 reward);
     event TouchedAndRemoved(bytes32 indexed contenderHash);
 
 
@@ -135,19 +135,16 @@ contract Registry {
         emit NewChallenge(msg.sender, _contenderHash, pollID, _evidence,  commitEndDate, revealEndDate);
     }
 
-    //Needs to be looped
     function updateStatus(bytes32 _contenderHash) public {
         if(canBecomeChampion(_contenderHash)) crownAsChampion(_contenderHash);
         else if(challengeCanBeConcluded(_contenderHash)) concludeChallenge(_contenderHash);
         else revert();
     }
 
-    
-    //Needs to be looped
-    function claimReward(uint _challengeID) public {
+    function claimIncentive(uint _challengeID) public {
         Challenge storage challenge = challenges[_challengeID];
 
-        require(rewardClaimStatus(_challengeID, msg.sender) == false &&
+        require(incentiveClaimStatus(_challengeID, msg.sender) == false &&
                 challenge.isConcluded == true);
 
         uint256 voterStake = voting.getNumPassingTokens(msg.sender, _challengeID);
@@ -159,11 +156,10 @@ contract Registry {
         challenge.incentiveClaims[msg.sender] = true;
         require(token.transfer(msg.sender, reward));
 
-        emit RewardClaimed(msg.sender, _challengeID, reward);
-
+        emit IncentiveClaimed(msg.sender, _challengeID, reward);
     }
 
-    function viewVoterReward(address _voter, uint _challengeID) public view returns(uint256) {
+    function viewVoterIncentive(address _voter, uint _challengeID) public view returns(uint256) {
         uint256 voterStake = voting.getNumPassingTokens(_voter, _challengeID);
         uint256 total = challenges[_challengeID].wonTokens;
         uint256 incentivePool = challenges[_challengeID].incentivePool;
@@ -171,7 +167,7 @@ contract Registry {
         return voterStake.mul(incentivePool).div(total);
     }
 
-    function rewardClaimStatus(uint256 _challengeID, address _voter) public view returns(bool) {
+    function incentiveClaimStatus(uint256 _challengeID, address _voter) public view returns(bool) {
         return challenges[_challengeID].incentiveClaims[_voter];
     }
 
@@ -203,7 +199,7 @@ contract Registry {
     function concludeChallenge(bytes32 _contenderHash) private {
         uint256 challengeID = contenders[_contenderHash].challengeID;
         Challenge storage challenge = challenges[challengeID];
-        uint256 reward = calculateReward(challengeID);
+        uint256 reward = calculateIncentive(challengeID);
         
         challenge.isConcluded = true;
 
@@ -221,7 +217,7 @@ contract Registry {
         }
     }
 
-    function calculateReward(uint _challengeID) private view returns(uint256) {
+    function calculateIncentive(uint _challengeID) private view returns(uint256) {
         
         if(voting.getTotalNumberOfTokensForWinningOption(_challengeID) == 0) 
             return 2 * challenges[_challengeID].stake;
