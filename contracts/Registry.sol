@@ -141,6 +141,10 @@ contract Registry {
         else revert();
     }
 
+    function batchUpdateStatuses(bytes32[] _contenderHashes) public {
+        for(uint256 = 0; i < _contenderHashes.length; i++) updateStatus(_contenderHashes[i]);
+    }
+
     function claimIncentive(uint _challengeID) public {
         Challenge storage challenge = challenges[_challengeID];
 
