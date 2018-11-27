@@ -5,6 +5,7 @@ import "./EIP20.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract Parameterizer {
+    using SafeMath for uint;
     
     struct PChallenge {
         address pChallenger;
@@ -26,8 +27,8 @@ contract Parameterizer {
     }
     
     mapping(bytes32 => uint) public params;
-    mapping(uint256 => Challenge) public challenges;
-    mapping(uint256 => ParamProposal) public proposals;
+    mapping(uint256 => PChallenge) public challenges;
+    mapping(bytes32 => Proposal) public proposals;
     
     EIP20Interface public token;
     PLCRVoting public voting;
@@ -39,7 +40,7 @@ contract Parameterizer {
     event PChallengerLost(bytes32 indexed proposalID, uint indexed challengeID, uint incentivePool, uint wonTokens);
     event ProposalPassed(bytes32 indexed proposalID, string name, uint value);
     event ProposalExpired(bytes32 indexed proposalID);
-    event IncentiveClaimed( address indexed voter, uint indexed challengeID, uint incentive);
+    event IncentiveClaimed(address indexed voter, uint indexed challengeID, uint incentive);
     
     function init(address _token, address _plcr, uint256[] _parameters) public {
         
@@ -66,74 +67,74 @@ contract Parameterizer {
         
     }
 
-    function proposeAdjustment(string _paramName, uint _value) public returns (bytes32) {
+    function proposeAdjustment(string _paramName, uint _paramVal) public returns (bytes32) {
         uint minDeposit = get("pMinDeposit");
-        bytes32 propID = keccak256(abi.encodePacked(_name, _value));
+        bytes32 proposalID = keccak256(abi.encodePacked(_paramName, _paramVal));
 
-        if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("dispensationPct")) ||
-            keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("pDispensationPct"))) {
-            require(_value <= 100);
+        if (keccak256(abi.encodePacked(_paramName)) == keccak256(abi.encodePacked("dispensationPct")) ||
+            keccak256(abi.encodePacked(_paramName)) == keccak256(abi.encodePacked("pDispensationPct"))) {
+            require(_paramVal <= 100);
         }
 
-        require(!exisitingProposal(propID)); 
-        require(get(_name) != _value); 
+        require(!exisitingProposal(proposalID)); 
+        require(get(_paramName) != _paramVal); 
 
-        Proposal storage proposal = proposals[propID];
+        Proposal storage proposal = proposals[proposalID];
 
         proposal.pIssuer = msg.sender;
         proposal.pChallengeID = 0; //i will check if omittable. 
         proposal.proposalExpiry = now.add(get("pApplyStageLen"));
         proposal.pDeposit = minDeposit;
-        proposal.paramName = _name;
+        proposal.paramName = _paramName;
         proposal.processBy = now.add(get("pApplyStageLen")).add(get("pCommitStageLen")).add(get("pRevealStageLen")).add(PROCESSBY);
-        proposal.paramVal = _value;
+        proposal.paramVal = _paramVal;
 
         require(token.transferFrom(msg.sender, this, minDeposit));
-        emit NewProposal(msg.sender, propID, _name, _value, minDeposit, proposal.appExpiry);
-        return propID;
+        emit NewProposal(msg.sender, proposalID, _paramName, _paramVal, minDeposit, proposal.proposalExpiry);
+        return proposalID;
     }
 
     function challengeProposal(bytes32 _proposalID) public returns (uint256) {
-        ParamProposal memory prop = proposals[_proposalID];
-        uint minDeposit = prop.deposit;
+        Proposal storage proposal = proposals[_proposalID];
+        uint minDeposit = proposal.pDeposit;
 
-        require(exisitingProposal(_proposalID) && prop.challengeID == 0);
+        require(exisitingProposal(_proposalID) && proposal.pChallengeID == 0);
         
-        proposals[_proposalID].challengeID = voting.startPoll(
+        proposal.pChallengeID = voting.startPoll(
             get("pVoteQuorum"),
             get("pCommitStageLen"),
             get("pRevealStageLen")
         );
 
-        PChallenge challenge = pChallenges[pollID];
-        challenge.pChallenger = msg.sender;
-        challenge.pIncentivePool = SafeMath.sub(100, get("pDispensationPct")).mul(deposit).div(100);
-        challenge.pStake = minDeposit;
-        challenge.pIsConcluded = false; //i will check if omittable. 
-        challenge.pWonTokens = 0; //i will check if omittable. 
+        PChallenge storage _challenge = challenges[proposal.pChallengeID];
+        _challenge.pChallenger = msg.sender;
+        _challenge.pIncentivePool = SafeMath.sub(100, get("pDispensationPct")).mul(minDeposit).div(100);
+        _challenge.pStake = minDeposit;
+        _challenge.pIsConcluded = false; //i will check if omittable. 
+        _challenge.pWonTokens = 0; //i will check if omittable. 
     
         require(token.transferFrom(msg.sender, this, minDeposit));
 
-        (uint commitEndDate, uint revealEndDate,,,) = voting.pollMap(pollID);
-        emit NewProposalChallenge(msg.sender, _propID, pollID, commitEndDate, revealEndDate);
-        return pollID;
+        (uint commitEndDate, uint revealEndDate,,,) = voting.pollMap(proposal.pChallengeID);
+        emit NewProposalChallenge(msg.sender, _proposalID, proposal.pChallengeID, commitEndDate, revealEndDate);
+        return proposal.pChallengeID;
     }
 
     //i will review this 
     function processProposalResult(bytes32 _proposalID) public {
-        Proposal storage proposal = proposals[_propID];
+        Proposal storage proposal = proposals[_proposalID];
 
-        if (proposalPassed(_propID)) {
-            set(proposal.paramName, proposal.paramName);
+        if (proposalPassed(_proposalID)) {
+            set(proposal.paramName, proposal.paramVal);
             emit ProposalPassed(_proposalID, proposal.paramName, proposal.paramVal);
-            delete proposals[_propID];
+            delete proposals[_proposalID];
             require(token.transfer(proposal.pIssuer, proposal.pDeposit));
         } 
         else if (challengeCanBeConcluded(_proposalID)) {
             concludeChallenge(_proposalID);
         } 
         else if (now > proposal.processBy) {
-            emit _ProposalExpired(_proposalID);
+            emit ProposalExpired(_proposalID);
             delete proposals[_proposalID];
             require(token.transfer(proposal.pIssuer, proposal.pDeposit));
         }
@@ -143,7 +144,7 @@ contract Parameterizer {
         assert(get("pDispensationPct") <= 100);
         now.add(get("pApplyStageLen")).add(get("pCommitStageLen")).add(get("pRevealStageLen")).add(PROCESSBY);
 
-        delete proposals[_propID];
+        delete proposals[_proposalID];
     }
 
     //Needs to be looped.
@@ -160,12 +161,12 @@ contract Parameterizer {
 
         challenge.pIncentiveClaims[msg.sender] = true;
 
-        emit IncentiveClaimed(_challengeID, incentive, msg.sender);
+        emit IncentiveClaimed(msg.sender, _challengeID, incentive);
         require(token.transfer(msg.sender, incentive));
     }
 
     function batchClaimIncentives(uint256[] _challengeIDs) public {
-        for(uint256 = 0; i < _challengeIDs.length; i++) claimIncentive(_challengeIDs[i]);
+        for(uint256 i = 0; i < _challengeIDs.length; i++) claimIncentive(_challengeIDs[i]);
     }
 
     function viewVoterIncentive(address _voter, uint _challengeID) public view returns(uint256) {
@@ -181,7 +182,7 @@ contract Parameterizer {
     }
 
     function proposalPassed(bytes32 _proposalID) view public returns (bool) {
-        Proposal memory proposal = proposals[_propID];
+        Proposal memory proposal = proposals[_proposalID];
 
         return (now > proposal.proposalExpiry &&
                 now < proposal.processBy && 
@@ -189,10 +190,10 @@ contract Parameterizer {
     }
 
     function challengeCanBeConcluded(bytes32 _proposalID) view public returns (bool) {
-        Proposal memory proposal = proposals[_propID];
+        Proposal memory proposal = proposals[_proposalID];
 
         return (proposal.pChallengeID > 0 &&
-                challenges[proposal.challengeID].pIsConcluded == false &&
+                challenges[proposal.pChallengeID].pIsConcluded == false &&
                 voting.pollEnded(proposal.pChallengeID));
     }
 
@@ -210,12 +211,12 @@ contract Parameterizer {
 
     //i will review this 
     function concludeChallenge(bytes32 _proposalID) private {
-        ParamProposal memory proposal = proposals[_proposalID];
+        Proposal memory proposal = proposals[_proposalID];
         PChallenge storage challenge = challenges[proposal.pChallengeID];
 
-        uint reward = calculateIncentive(proposal.pChallengeID);
+        uint incentive = calculateIncentive(proposal.pChallengeID);
 
-        challenge.pWonTokens = voting.getTotalNumberOfTokensForWinningOption(proposal.challengeID);
+        challenge.pWonTokens = voting.getTotalNumberOfTokensForWinningOption(proposal.pChallengeID);
         challenge.pIsConcluded = true;
 
         if (voting.isPassed(proposal.pChallengeID)) { 
@@ -223,17 +224,17 @@ contract Parameterizer {
                 set(proposal.paramName, proposal.paramVal);
             }
             emit PChallengerLost(_proposalID, proposal.pChallengeID, challenge.pIncentivePool, challenge.pWonTokens);
-            require(token.transfer(prop.owner, reward));
+            require(token.transfer(proposal.pIssuer, incentive));
         }
         else {
             emit PChallengerWon(_proposalID, proposal.pChallengeID, challenge.pIncentivePool, challenge.pWonTokens);
-            require(token.transfer(challenges.pChallenger, reward));
+            require(token.transfer(challenge.pChallenger, incentive));
         }
     }
 
     function calculateIncentive(uint256 _challengeID) public view returns (uint256) {
         if(voting.getTotalNumberOfTokensForWinningOption(_challengeID) == 0) {
-            return 2 * challenges[_challengeID].stake;
+            return 2 * challenges[_challengeID].pStake;
         }
 
         return (2 * challenges[_challengeID].pStake) - challenges[_challengeID].pIncentivePool;

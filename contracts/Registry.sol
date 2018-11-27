@@ -121,18 +121,18 @@ contract Registry {
             parameterizer.get("revealStageLen")
         );
 
-        uint256 oneHundred = 100; 
-        Challenge storage challenge = challenges[pollID];
-        challenge.challenger = msg.sender;
-        challenge.incentivePool = ((oneHundred.sub(parameterizer.get("dispensationPct"))).mul(minDeposit)).div(100);
-        challenge.stake = minDeposit;
-        challenge.wonTokens = 0;
+        
+        Challenge storage _challenge = challenges[contender.challengeID];
+        _challenge.challenger = msg.sender;
+        _challenge.incentivePool = SafeMath.sub(100, parameterizer.get("dispensationPct")).mul(minDeposit).div(100);
+        _challenge.stake = minDeposit;
+        _challenge.wonTokens = 0;
         
         contender.deposit -= minDeposit;
-        (uint commitEndDate, uint revealEndDate,,,) = voting.pollMap(pollID);
+        (uint commitEndDate, uint revealEndDate,,,) = voting.pollMap(contender.challengeID);
         
         require(token.transferFrom(msg.sender, this, minDeposit));
-        emit NewChallenge(msg.sender, _contenderHash, pollID, _evidence,  commitEndDate, revealEndDate);
+        emit NewChallenge(msg.sender, _contenderHash, contender.challengeID, _evidence,  commitEndDate, revealEndDate);
     }
 
     function updateStatus(bytes32 _contenderHash) public {
@@ -142,29 +142,29 @@ contract Registry {
     }
 
     function batchUpdateStatuses(bytes32[] _contenderHashes) public {
-        for(uint256 = 0; i < _contenderHashes.length; i++) updateStatus(_contenderHashes[i]);
+        for(uint256 i = 0; i < _contenderHashes.length; i++) updateStatus(_contenderHashes[i]);
     }
 
     function claimIncentive(uint _challengeID) public {
-        Challenge storage challenge = challenges[_challengeID];
+        Challenge storage _challenge = challenges[_challengeID];
 
         require(incentiveClaimStatus(_challengeID, msg.sender) == false &&
-                challenge.isConcluded == true);
+                _challenge.isConcluded == true);
 
         uint256 voterStake = voting.getNumPassingTokens(msg.sender, _challengeID);
-        uint256 reward = voterStake.mul(challenge.incentivePool).div(challenge.wonTokens);
+        uint256 reward = voterStake.mul(_challenge.incentivePool).div(_challenge.wonTokens);
         
-        challenge.wonTokens -= voterStake;
-        challenge.incentivePool -= reward;
+        _challenge.wonTokens -= voterStake;
+        _challenge.incentivePool -= reward;
 
-        challenge.incentiveClaims[msg.sender] = true;
+        _challenge.incentiveClaims[msg.sender] = true;
         require(token.transfer(msg.sender, reward));
 
         emit IncentiveClaimed(msg.sender, _challengeID, reward);
     }
 
     function batchClaimIncentives(uint256[] _challengeIDs) public {
-        for(uint256 = 0; i < _challengeIDs.length; i++) claimIncentive(_challengeIDs[i]);
+        for(uint256 i = 0; i < _challengeIDs.length; i++) claimIncentive(_challengeIDs[i]);
     }
 
     function viewVoterIncentive(address _voter, uint _challengeID) public view returns(uint256) {
@@ -206,22 +206,22 @@ contract Registry {
 
     function concludeChallenge(bytes32 _contenderHash) private {
         uint256 challengeID = contenders[_contenderHash].challengeID;
-        Challenge storage challenge = challenges[challengeID];
+        Challenge storage _challenge = challenges[challengeID];
         uint256 reward = calculateIncentive(challengeID);
         
-        challenge.isConcluded = true;
+        _challenge.isConcluded = true;
 
-        challenge.wonTokens = voting.getTotalNumberOfTokensForWinningOption(challengeID);
+        _challenge.wonTokens = voting.getTotalNumberOfTokensForWinningOption(challengeID);
 
         if(voting.isPassed(challengeID)){
             crownAsChampion(_contenderHash);
             contenders[_contenderHash].deposit += reward;
-            emit ChallengerLost(challengeID, _contenderHash, challenge.incentivePool, challenge.wonTokens);
+            emit ChallengerLost(challengeID, _contenderHash, _challenge.incentivePool, _challenge.wonTokens);
         }
         else {
             backtrackState(_contenderHash);
             require(token.transfer(challenges[challengeID].challenger, reward));
-            emit ChallengerWon(challengeID, _contenderHash, challenge.incentivePool, challenge.wonTokens);
+            emit ChallengerWon(challengeID, _contenderHash, _challenge.incentivePool, _challenge.wonTokens);
         }
     }
 
@@ -230,8 +230,7 @@ contract Registry {
         if(voting.getTotalNumberOfTokensForWinningOption(_challengeID) == 0) 
             return 2 * challenges[_challengeID].stake;
         else
-            return (2 * challenges[_challengeID].stake) - challenges[_challengeID].incentivePool
-;
+            return (2 * challenges[_challengeID].stake) - challenges[_challengeID].incentivePool;
     }
 
     function backtrackState(bytes32 _contenderHash) private {
