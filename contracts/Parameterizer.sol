@@ -146,7 +146,27 @@ contract Parameterizer {
         delete proposals[_propID];
     }
 
-    
+    //Needs to be looped.
+    function claimIncentive(uint256 _challengeID) public {
+        PChallenge storage challenge = challenges[_challengeID];
+        require(incentiveClaimStatus(_challengeID,msg.sender) == false);
+        require(challenge.pIsConcluded == true);
+
+        uint voterStake = voting.getNumPassingTokens(msg.sender, _challengeID);
+        uint incentive = voterStake.mul(challenge.pIncentivePool).div(challenge.pWonTokens);
+
+        challenge.pWonTokens -= voterStake;
+        challenge.pIncentivePool -= incentive;
+
+        challenge.pIncentiveClaims[msg.sender] = true;
+
+        emit IncentiveClaimed(_challengeID, incentive, msg.sender);
+        require(token.transfer(msg.sender, incentive));
+    }
+
+    function incentiveClaimStatus(uint256 _challengeID, address _voter) public view returns(bool) {
+        return challenges[_challengeID].pIncentiveClaims[_voter];
+    }
 
     function proposalPassed(bytes32 _proposalID) view public returns (bool) {
         Proposal memory proposal = proposals[_propID];
