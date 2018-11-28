@@ -1,19 +1,24 @@
 {
-  "name": "augmentedtcr",
+  "name": "aug-tcr",
   "version": "1.0.0",
-  "dependencies": {
-    "babel-core": "^6.26.3",
-    "babel-loader": "^8.0.4",
-    "babel-preset-env": "^1.7.0",
-    "web3": "^0.20.0",
-    "webpack": "^4.26.1"
-  },
-  "main": "src/AugTCR.js",
+  "main": "AugTCR.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "webpack-dev-server --entry ./src/AugTCR.js --output-filename ./dist/bundle.js",
+    "build": "webpack"
   },
+  "keywords": [],
   "author": "Markus Viola",
   "license": "MIT",
-  "keywords": [],
+  "dependencies": {
+    "lodash": "^4.17.11",
+    "web3": "^0.20.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.1.5",
+    "babel-preset-env": "^1.7.0",
+    "webpack": "^4.26.1",
+    "webpack-cli": "^3.1.2"
+  },
   "description": ""
 }
