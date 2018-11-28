@@ -11,6 +11,7 @@ contract Registry {
 
     struct Contender {
         address issuer;
+        string description;
         bool isChampion;
         uint challengeID;
         uint256 deposit;
@@ -25,9 +26,13 @@ contract Registry {
         uint256 wonTokens;
         mapping(address => bool) incentiveClaims;
     }
+    
+    
 
     mapping(bytes32 => Contender) public contenders;
     mapping(uint256 => Challenge) public challenges;
+    mapping(uint256 => bytes32) public champions;
+    uint256 championNonce;
 
     EIP20Interface public token;
     PLCRVoting public voting;
@@ -63,13 +68,14 @@ contract Registry {
     
     //Contender Functions
 
-    function register(bytes32 _contenderHash, uint256 _amount, string _extra) external {
+    function register(bytes32 _contenderHash, uint256 _amount, string _desc, string _extra) external {
         require(_amount >= parameterizer.get("minDeposit") && 
                 !isChampion(_contenderHash) && 
                 !existingContender(_contenderHash));
 
         Contender storage contender = contenders[_contenderHash];
         contender.issuer = msg.sender;
+        contender.description = _desc;
         contender.deposit = _amount;
         contender.applicationExpiry = block.timestamp.add(parameterizer.get("applyStageLen"));
         
@@ -196,8 +202,12 @@ contract Registry {
             contender.isChampion = true;
             emit NewChampion(_contenderHash);
         }
+        
+        //TESTING PURPOSES:
+        champions[++championNonce] = _contenderHash;
     }
-
+    
+    
     function challengeCanBeConcluded(bytes32 _contenderHash) view public returns(bool) {
         uint256 challengeID = contenders[_contenderHash].challengeID;
         if(challengeID > 0 && !challenges[challengeID].isConcluded) return voting.pollEnded(challengeID);
@@ -252,5 +262,19 @@ contract Registry {
     function existingContender(bytes32 _contenderHash) view public returns(bool exists){
         return contenders[_contenderHash].applicationExpiry > 0; 
     }
-
+    
+    //FUNCTION TESTERS
+    function AAAexpireApplication(bytes32 _contenderHash) public {
+        contenders[_contenderHash].applicationExpiry = now - 1;
+    }
+    
+    function getChampionNonce() public view returns(uint256) {
+        return championNonce;
+    }
+    
+    function getChampion(bytes32 _contenderHash) public view returns(string){
+        if(contenders[_contenderHash].isChampion == true){
+            return contenders[_contenderHash].description;
+        }
+    }
 }
