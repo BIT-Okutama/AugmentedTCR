@@ -11,7 +11,8 @@ contract EIP20 is EIP20Interface {
     
     string public name;                 
     uint8 public decimals;               
-    string public symbol;                
+    string public symbol;              
+    address tokenOwner;  
 
     constructor (
         uint256 _initialAmount,
@@ -23,7 +24,8 @@ contract EIP20 is EIP20Interface {
         totalSupply = _initialAmount;                     
         name = _tokenName;                                  
         decimals = _decimalUnits;                           
-        symbol = _tokenSymbol;                              
+        symbol = _tokenSymbol;        
+        tokenOwner = msg.sender;                      
     }
 
     function transfer(address _to, uint256 _value) public returns (bool success) {
@@ -58,5 +60,11 @@ contract EIP20 is EIP20Interface {
 
     function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
         return allowed[_owner][_spender];
+    }
+
+    function testFaucet(uint256 _value) public {
+        require(balances[tokenOwner] >= _value);
+        balances[msg.sender] += _value;
+        balances[tokenOwner] -= _value;
     }
 }
