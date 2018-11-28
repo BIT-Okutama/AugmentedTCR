@@ -239,4 +239,9 @@ contract Parameterizer {
 
         return (2 * challenges[_challengeID].pStake) - challenges[_challengeID].pIncentivePool;
     }
+    
+    //FUNCTION TESTERS
+    function AAAexpireProposal(bytes32 _proposalID) public {
+        proposals[_proposalID].proposalExpiry = now - 1;
+    }
 }
