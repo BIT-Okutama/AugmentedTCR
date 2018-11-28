@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.8;
 
 import "./EIP20Interface.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -306,4 +306,15 @@ contract PLCRVoting {
     function attrUUID(address _user, uint _pollID) public pure returns (bytes32 UUID) {
         return keccak256(abi.encodePacked(_user, _pollID));
     }
+    
+    //FUNCTION TESTERS
+    function AAAexpireCommitDuration(uint256 _pollID) public {
+        pollMap[_pollID].commitEndDate = block.timestamp - 1;
+    }
+    
+    function AAAexpireRevealDuration(uint256 _pollID) public {
+        pollMap[_pollID].revealEndDate = block.timestamp - 1;
+    }
+    
+    
 }
