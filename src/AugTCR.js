@@ -74,7 +74,7 @@ class AugTCR {
 
     //PLCR Functions
 
-    requestVotingRights(_numTokens){
+    PLCRRequestVotingRights(_numTokens){
         this.plcrInstance.requestVotingRights(_numTokens,
             {gas: 300000, from: window.web3.eth.accounts[0]},
             (err, result) => {
@@ -83,7 +83,7 @@ class AugTCR {
         );
     }
 
-    withdrawVotingRights(_numTokens) {
+    PLCRWithdrawVotingRights(_numTokens) {
         this.plcrInstance.withdrawVotingRights(_numTokens,
             {gas: 300000, from: window.web3.eth.accounts[0]},
             (err, result) => {
@@ -92,7 +92,7 @@ class AugTCR {
         );
     }
 
-    commitVote(_pollID, _voteOption, _salt, _numTokens){
+    PLCRCommitVote(_pollID, _voteOption, _salt, _numTokens){
         this.plcrInstance.commitVote(_pollID, web3.utils.keccak256(_voteOption+ '' +_salt), _numTokens, 0,
             {gas: 300000, from: window.web3.eth.accounts[0]},
             (err, result) => {
@@ -101,7 +101,7 @@ class AugTCR {
         );
     }
 
-    revealVote(_pollID, _voteOption, _salt){
+    PLCRRevealVote(_pollID, _voteOption, _salt){
         this.plcrInstance.revealVote(_pollID, _voteOption, _salt,
             {gas: 300000, from: window.web3.eth.accounts[0]},
             (err, result) => {
@@ -110,7 +110,7 @@ class AugTCR {
         );
     }
 
-    AAAexpireCommitDuration(_pollID){
+    PLCRAAAexpireCommitDuration(_pollID){
         this.plcrInstance.AAAexpireCommitDuration(_pollID,
             {gas: 300000, from: window.web3.eth.accounts[0]},
             (err, result) => {
@@ -119,7 +119,7 @@ class AugTCR {
         );
     }
 
-    AAAexpireRevealDuration(_pollID){
+    PLCRAAAexpireRevealDuration(_pollID){
         this.plcrInstance.AAAexpireRevealDuration(_pollID,
             {gas: 300000, from: window.web3.eth.accounts[0]},
             (err, result) => {
@@ -156,7 +156,83 @@ class AugTCR {
         );
     }
 
+    registryChallenge(_contenderHash, _evidence){
+        this.registryInstance.challenge(_contenderHash, _evidence,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
 
+    //Array of Bytes32
+    registryBatchUpdateStatuses(_contenderHashes){
+        this.registryInstance.batchUpdateStatuses(_contenderHashes,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    //Array of Integer
+    registryBatchClaimIncentives(_challengeIDs){
+        this.registryInstance.batchClaimIncentives(_challengeIDs,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    registryViewVoterIncentive(_voter, _challengeID){
+        this.registryInstance.viewVoterIncentive(_voter, _challengeID,
+            (err, result) => {
+                return result;
+            }
+        );
+    }
+
+    registryIncentiveClaimStatus(_challengeID, _voter){
+        this.registryInstance.incentiveClaimStatus(_challengeID, _voter,
+            (err, result) => {
+                return result;
+            }
+        );
+    }
+
+    registryIsChampion(_contenderHash){
+        this.registryInstance.incentiveClaimStatus(_contenderHash,
+            (err, result) => {
+                return result;
+            }
+        );    
+    }
+
+    registryAAAexpireApplication(_contenderHash){
+        this.registryInstance.AAAexpireApplication(_contenderHash,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+    
+    registryGetChampionNonce(){
+        this.registryInstance.getChampionNonce(
+            (err, result) => {
+                return result;
+            }
+        );   
+    }
+    
+    registryGetChampion(_contenderHash) {
+        this.registryInstance.getChampion(_contenderHash,
+            (err, result) => {
+                return result;
+            }
+        );   
+    }
 
     
 }
