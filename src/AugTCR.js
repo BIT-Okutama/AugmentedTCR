@@ -234,5 +234,84 @@ class AugTCR {
         );   
     }
 
+    //Parameterizer Functions
+
+    paramProposeAdjustment(_paramName, _paramVal){
+        this.parameterizerInstance.proposeAdjustment(_paramName, _paramVal,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
     
+    paramChallengeProposal(_proposalID){
+        this.parameterizerInstance.challengeProposal(_proposalID,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    paramProcessProposalResult(_proposalID){
+        this.parameterizerInstance.processProposalResult(_proposalID,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    paramBatchClaimIncentives(_challengeIDs){
+        this.parameterizerInstance.batchClaimIncentives(_challengeIDs,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    paramViewVoterIncentive(_voter, _challengeID){
+        this.parameterizerInstance.viewVoterIncentive(_voter, _challengeID,
+            (err, result) => {
+                return result;
+            }
+        ); 
+    }
+
+    paramIncentiveClaimStatus(_challengeID, _voter){
+        this.parameterizerInstance.incentiveClaimStatus(_challengeID, _voter,
+            (err, result) => {
+                return result;
+            }
+        ); 
+    }
+
+    paramSet(_name, _value){
+        this.parameterizerInstance.set(_name, _value,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    paramGet(_name){
+        this.parameterizerInstance.get(_name,
+            (err, result) => {
+                return result;
+            }
+        ); 
+    }
+
+    paramAAAexpireProposal(_proposalID){
+        this.parameterizerInstance.AAAexpireProposal(_proposalID,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
 }
