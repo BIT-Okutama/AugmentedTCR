@@ -1,9 +1,10 @@
 import Web3 from 'web3'
 import contracts from './ContractInstances';
 
-new AugTCR();
+let sample = new AugTCR();
 
 class AugTCR {
+
     constructor() {
         //Initializes the Web3 connection instance.
         if(typeof window.web3 != 'undefined'){
@@ -20,8 +21,46 @@ class AugTCR {
 
         //Sets the contract connection for the instance.
         const OrchContract = window.web3.eth.contract(contracts.orchestratorABI);
-        let contractInstance = OrchContract.at(contracts.orchestratorAddress);
+        this.contractInstance = OrchContract.at(contracts.orchestratorAddress);
 
         alert(contracts.orchestratorAddress);
     }
+
+    //Environment Builder
+    initEnvironmentWithToken(_token, _registryName, _parameters){
+        this.contractInstance.buildEnv(_token, _registryName, _parameters,
+            {gas: 300000, from: window.web3.eth.accounts[0]},(err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    initEnvironmentAndToken(_supply, _tokenName, _decimals, _symbol, _parameters, _registryName){
+        this.contractInstance.buildEnvAndToken(_supply, _tokenName, _decimals, _symbol, _parameters, _registryName,
+            {gas: 300000, from: window.web3.eth.accounts[0]},(err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    //There should be a looper to navigate instances.
+    retrieveEnvironmentInstance(_id, _creator){
+        this.contractInstance.getEnvInstances(_id, _creator,
+            (err, result) => {
+                this.plcr = result[0];
+                this.parameterizer = result[1];
+                this.registry = result[2];
+            }
+        );
+    }
+
+    
+
+    
+
+    
+
+
+
+    
 }
