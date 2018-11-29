@@ -128,7 +128,33 @@ class AugTCR {
         );
     }
 
-    
+    //Registry Functions
+    registryRegister(_uniqueKey, _amount, _desc, _extra){
+        this.registryInstance.register(web3.utils.keccak256(_uniqueKey, _desc), _amount, _desc, _extra,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    registryDeposit(_contenderHash, _amount){
+        this.registryInstance.deposit(_contenderHash, _amount,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    registryWithdraw(_contenderHash, _amount){
+        this.registryInstance.withdraw(_contenderHash, _amount,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
 
 
 
