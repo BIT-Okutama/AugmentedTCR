@@ -3,6 +3,7 @@ import contracts from './ContractInstances';
 
 let sample = new AugTCR();
 
+
 class AugTCR {
 
     constructor() {
@@ -54,7 +55,22 @@ class AugTCR {
         );
     }
 
-    
+    //Instance Setter
+    setEnvironmentInstance(){
+        if(this.plcr === 'undefined' || this.parameterizer === 'undefined' === this.registry == 'undefined'){
+            console.log("Get your instance first");
+        }
+        else {
+            const PLCRContract = window.web3.eth.contract(contracts.plcrABI);
+            this.plcrInstance = PLCRContract.at(contracts.plcrAddress);
+
+            const ParameterizerContract = window.web3.eth.contract(contracts.parameterizerABI);
+            this.parameterizerInstance = ParameterizerContract.at(contracts.parameterizerAddress);
+
+            const RegistryContract = window.web3.eth.contract(contracts.registryABI);
+            this.registryInstance = RegistryContract.at(contracts.registryAddress);
+        }
+    }
 
     
 
