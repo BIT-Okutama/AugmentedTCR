@@ -72,7 +72,61 @@ class AugTCR {
         }
     }
 
-    
+    //PLCR Functions
+
+    requestVotingRights(_numTokens){
+        this.plcrInstance.requestVotingRights(_numTokens,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    withdrawVotingRights(_numTokens) {
+        this.plcrInstance.withdrawVotingRights(_numTokens,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    commitVote(_pollID, _voteOption, _salt, _numTokens){
+        this.plcrInstance.commitVote(_pollID, web3.utils.keccak256(_voteOption+ '' +_salt), _numTokens, 0,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    revealVote(_pollID, _voteOption, _salt){
+        this.plcrInstance.revealVote(_pollID, _voteOption, _salt,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    AAAexpireCommitDuration(_pollID){
+        this.plcrInstance.AAAexpireCommitDuration(_pollID,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
+
+    AAAexpireRevealDuration(_pollID){
+        this.plcrInstance.AAAexpireRevealDuration(_pollID,
+            {gas: 300000, from: window.web3.eth.accounts[0]},
+            (err, result) => {
+                alert("Transaction Successful!");
+            }
+        );
+    }
 
     
 
