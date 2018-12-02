@@ -2,7 +2,7 @@ pragma solidity ^0.4.24;
 
 
 import "https://github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "./EIP20Interface.sol";
+import "https://github.com/ConsenSys/Tokens/contracts/eip20/EIP20Interface.sol";
 import "./Parameterizer.sol";
 import "./PLCRVoting.sol";
 
@@ -13,7 +13,7 @@ contract Registry {
         address issuer;
         string description;
         bool isChampion;
-        uint challengeID;
+        uint256 challengeID;
         uint256 deposit;
         uint256 applicationExpiry;
     }
@@ -27,29 +27,30 @@ contract Registry {
         mapping(address => bool) incentiveClaims;
     }
     
-    
-
     mapping(bytes32 => Contender) public contenders;
     mapping(uint256 => Challenge) public challenges;
-    mapping(uint256 => bytes32) public champions;
-    uint256 championNonce;
+    
+    bytes32[] contenderNonce;
+    uint256[] challengeNonce;
+    
 
     EIP20Interface public token;
     PLCRVoting public voting;
     Parameterizer public parameterizer;
     string public name;
 
-    event NewContender(address indexed issuer, bytes32 indexed contenderHash, uint256 stake, uint256 applicationExpiry, string extra);
-    event Deposit(address indexed issuer, bytes32 indexed contenderHash, uint256 depositAmount, uint256 total);
-    event Withdrawal(address indexed issuer, bytes32 indexed contenderHash, uint256 withdrawAmount, uint256 total);
-    event ChampionRemoved(bytes32 indexed contenderHash);
-    event ContenderRemoved(bytes32 indexed contenderHash);
-    event NewChallenge(address indexed challenger, bytes32 indexed contenderHash, uint256 challengeID, string evidence, uint256 commitEnd, uint256 revealEnd);
-    event NewChampion(bytes32 indexed contenderHash);
-    event ChallengerLost(uint256 challengeID, bytes32 indexed contenderHash, uint256 incentivePoo, uint256 wonTokens);
-    event ChallengerWon(uint256 challengeID, bytes32 indexed contenderHash, uint256 incentivePoo, uint256 wonTokens);
-    event IncentiveClaimed(address indexed voter, uint256 indexed challengeID, uint256 reward);
-    event TouchedAndRemoved(bytes32 indexed contenderHash);
+    event NewContender(address issuer, bytes32 contenderHash, uint256 stake, uint256 applicationExpiry, string extra);
+    event Deposit(address issuer, bytes32 contenderHash, uint256 depositAmount, uint256 total);
+    event Withdrawal(address issuer, bytes32 contenderHash, uint256 withdrawAmount, uint256 total);
+    event ChampionRemoved(bytes32 contenderHash);
+    event ContenderRemoved(bytes32 contenderHash);
+    event NewChallenge(address challenger, bytes32 contenderHash, uint256 challengeID, string evidence, uint256 commitEnd, uint256 revealEnd);
+    event NewChampion(bytes32 contenderHash);
+    event ChallengerLost(uint256 challengeID, bytes32 contenderHash, uint256 incentivePoo, uint256 wonTokens);
+    event ChallengerWon(uint256 challengeID, bytes32 contenderHash, uint256 incentivePoo, uint256 wonTokens);
+    event IncentiveClaimed(address voter, uint256 challengeID, uint256 reward);
+    event TouchedAndRemoved(bytes32 contenderHash);
+    event OperationSuccess(bool success);
 
 
     function init(address _token, string _name, address _parameterizer, address _voting) public {
@@ -62,9 +63,6 @@ contract Registry {
         parameterizer = Parameterizer(_parameterizer);
         name = _name;
     }
-
-    //Pending changes: PLCRVoting -> voteOption to boolean
-    //To be reviewed:  claimReward(), reward can be viewed only after claiming?
     
     //Contender Functions
 
@@ -74,6 +72,8 @@ contract Registry {
                 !existingContender(_contenderHash));
 
         Contender storage contender = contenders[_contenderHash];
+        contenderNonce.push(_contenderHash);
+        
         contender.issuer = msg.sender;
         contender.description = _desc;
         contender.deposit = _amount;
@@ -129,6 +129,8 @@ contract Registry {
 
         
         Challenge storage _challenge = challenges[contender.challengeID];
+        challengeNonce.push(contender.challengeID);
+        
         _challenge.challenger = msg.sender;
         _challenge.incentivePool = SafeMath.sub(100, parameterizer.get("dispensationPct")).mul(minDeposit).div(100);
         _challenge.stake = minDeposit;
@@ -149,6 +151,7 @@ contract Registry {
 
     function batchUpdateStatuses(bytes32[] _contenderHashes) public {
         for(uint256 i = 0; i < _contenderHashes.length; i++) updateStatus(_contenderHashes[i]);
+        emit OperationSuccess(true);
     }
 
     function claimIncentive(uint _challengeID) public {
@@ -171,6 +174,7 @@ contract Registry {
 
     function batchClaimIncentives(uint256[] _challengeIDs) public {
         for(uint256 i = 0; i < _challengeIDs.length; i++) claimIncentive(_challengeIDs[i]);
+        emit OperationSuccess(true);
     }
 
     function viewVoterIncentive(address _voter, uint _challengeID) public view returns(uint256) {
@@ -203,8 +207,6 @@ contract Registry {
             emit NewChampion(_contenderHash);
         }
         
-        //TESTING PURPOSES:
-        champions[++championNonce] = _contenderHash;
     }
     
     
@@ -263,18 +265,32 @@ contract Registry {
         return contenders[_contenderHash].applicationExpiry > 0; 
     }
     
-    //FUNCTION TESTERS
+    function getContenderNonce() public view returns(bytes32[]){
+        return contenderNonce;
+    }
+    
+    function getChallengeNonce() public view returns(uint256[]){
+        return challengeNonce;
+    }
+    
+    function getContender(bytes32 _contenderHash) public view returns(string _desc, uint256 _challengeID, uint256 _appExpiry, bool _isChampion, address _issuer){
+        _desc = contenders[_contenderHash].description;
+        _challengeID = contenders[_contenderHash].challengeID;
+        _appExpiry = contenders[_contenderHash].applicationExpiry;
+        _isChampion = contenders[_contenderHash].isChampion;
+        _issuer = contenders[_contenderHash].issuer;
+    }
+    
+    function getChallenge(uint256 _challengeID) public view returns(bool _isConcluded, uint256 _incentivePool) {
+        _isConcluded = challenges[_challengeID].isConcluded;
+        _incentivePool = challenges[_challengeID].incentivePool;
+    }
+    
+    //FUNCTION TESTER
     function AAAexpireApplication(bytes32 _contenderHash) public {
         contenders[_contenderHash].applicationExpiry = now - 1;
+        emit OperationSuccess(true);
     }
     
-    function getChampionNonce() public view returns(uint256) {
-        return championNonce;
-    }
     
-    function getChampion(bytes32 _contenderHash) public view returns(string){
-        if(contenders[_contenderHash].isChampion == true){
-            return contenders[_contenderHash].description;
-        }
-    }
 }

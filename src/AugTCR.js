@@ -1,7 +1,10 @@
 import Web3 from 'web3'
 import contracts from './ContractInstances';
 
-let sample = new AugTCR();
+// let sample = new AugTCR();
+
+// sample.retrieveEnvironmentInstance(1,window.web3.eth.accounts[0]);
+// sample.initEnvironmentAndToken(100,"test",1,"testsymbol",[0,1,2,3,4,5,6,7,8,9,10,11,12,13],"testregistry");
 
 
 class AugTCR {
@@ -51,6 +54,10 @@ class AugTCR {
                 this.plcr = result[0];
                 this.parameterizer = result[1];
                 this.registry = result[2];
+                
+                console.log(result[0]);
+                console.log(result[1]);
+                console.log(result[2]);
             }
         );
     }
@@ -315,3 +322,5 @@ class AugTCR {
     }
 
 }
+
+export default AugTCR;

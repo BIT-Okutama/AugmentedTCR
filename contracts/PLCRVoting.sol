@@ -1,18 +1,19 @@
 pragma solidity ^0.4.8;
 
-import "./EIP20Interface.sol";
+import "https://github.com/ConsenSys/Tokens/contracts/eip20/EIP20Interface.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./DLL.sol";
 import "./AttributeStore.sol";
 
 contract PLCRVoting {
 
-    event _VoteCommitted(uint indexed pollID, uint numTokens, address indexed voter);
-    event _VoteRevealed(uint indexed pollID, uint numTokens, uint votesFor, uint votesAgainst, uint indexed choice, address indexed voter, uint salt);
-    event _PollCreated(uint voteQuorum, uint commitEndDate, uint revealEndDate, uint indexed pollID, address indexed creator);
-    event _VotingRightsGranted(uint numTokens, address indexed voter);
-    event _VotingRightsWithdrawn(uint numTokens, address indexed voter);
-    event _TokensRescued(uint indexed pollID, address indexed voter);
+    event _VoteCommitted(uint pollID, uint numTokens, address voter);
+    event _VoteRevealed(uint pollID, uint numTokens, uint votesFor, uint votesAgainst, uint choice, address voter, uint salt);
+    event _PollCreated(uint voteQuorum, uint commitEndDate, uint revealEndDate, uint pollID, address creator);
+    event _VotingRightsGranted(uint numTokens, address voter);
+    event _VotingRightsWithdrawn(uint numTokens, address voter);
+    event _TokensRescued(uint pollID, address voter);
+    event OperationSuccess(bool success);
 
     using AttributeStore for AttributeStore.Data;
     using DLL for DLL.Data;
@@ -47,13 +48,22 @@ contract PLCRVoting {
         token = EIP20Interface(_token);
         pollNonce = INITIAL_POLL_NONCE;
     }
-
+    
+    //TESTING ONLY
+    function tokenFaucet(uint256 _numTokens) public payable {
+        voteTokenBalance[msg.sender] += _numTokens;
+        emit OperationSuccess(true);
+    }
 
     function requestVotingRights(uint _numTokens) public {
         require(token.balanceOf(msg.sender) >= _numTokens);
         voteTokenBalance[msg.sender] += _numTokens;
         require(token.transferFrom(msg.sender, this, _numTokens));
         emit _VotingRightsGranted(_numTokens, msg.sender);
+    }
+    
+    function getVotingBalance() public view returns(uint) {
+        return voteTokenBalance[msg.sender];
     }
 
 
@@ -271,7 +281,6 @@ contract PLCRVoting {
         return dllMap[_voter].getPrev(0);
     }
 
-
     function getLockedTokens(address _voter) constant public returns (uint numTokens) {
         return getNumTokens(_voter, getLastNode(_voter));
     }
@@ -298,7 +307,6 @@ contract PLCRVoting {
         return nodeID;
     }
 
-
     function isExpired(uint _terminationDate) constant public returns (bool expired) {
         return (block.timestamp > _terminationDate);
     }
@@ -310,10 +318,23 @@ contract PLCRVoting {
     //FUNCTION TESTERS
     function AAAexpireCommitDuration(uint256 _pollID) public {
         pollMap[_pollID].commitEndDate = block.timestamp - 1;
+        emit OperationSuccess(true);
     }
     
     function AAAexpireRevealDuration(uint256 _pollID) public {
         pollMap[_pollID].revealEndDate = block.timestamp - 1;
+        emit OperationSuccess(true);
+    }
+    
+    //OTHERS
+    
+    function getPoll(uint256 _pollID) public view returns(uint _commitEndDate, uint _revealEndDate){
+        _commitEndDate = pollMap[_pollID].commitEndDate;
+        _revealEndDate = pollMap[_pollID].revealEndDate;
+    }
+    
+    function getPollNonce() public view returns(uint256){
+        return pollNonce;
     }
     
     

@@ -1,7 +1,7 @@
 pragma solidity^0.4.11;
 
 import "./PLCRVoting.sol";
-import "./EIP20.sol";
+import "https://github.com/ConsenSys/Tokens/contracts/eip20/EIP20Interface.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract Parameterizer {
@@ -26,21 +26,26 @@ contract Parameterizer {
         uint256 processBy;
     }
     
-    mapping(bytes32 => uint) public params;
+    mapping(bytes32 => uint256) public params;
     mapping(uint256 => PChallenge) public challenges;
     mapping(bytes32 => Proposal) public proposals;
     
+    bytes32[] proposalNonce;
+    uint256[] challengeNonce;
+    
+    
     EIP20Interface public token;
     PLCRVoting public voting;
-    uint256 public PROCESSBY = 604800;
+    uint256 public PROCESSBY = 0; //604800
     
-    event NewProposal(address indexed issuer, bytes32 proposalID, string name, uint value, uint deposit, uint appEndDate);
-    event NewProposalChallenge(address indexed challenger, bytes32 indexed proposalID, uint challengeID, uint commitEndDate, uint revealEndDate);
-    event PChallengerWon(bytes32 indexed proposalID, uint indexed challengeID, uint incentivePool, uint wonTokens);
-    event PChallengerLost(bytes32 indexed proposalID, uint indexed challengeID, uint incentivePool, uint wonTokens);
-    event ProposalPassed(bytes32 indexed proposalID, string name, uint value);
-    event ProposalExpired(bytes32 indexed proposalID);
-    event IncentiveClaimed(address indexed voter, uint indexed challengeID, uint incentive);
+    event NewProposal(address issuer, bytes32 proposalID, string name, uint value, uint deposit, uint appEndDate);
+    event NewProposalChallenge(address challenger, bytes32 proposalID, uint challengeID, uint commitEndDate, uint revealEndDate);
+    event PChallengerWon(bytes32 proposalID, uint challengeID, uint incentivePool, uint wonTokens);
+    event PChallengerLost(bytes32 proposalID, uint challengeID, uint incentivePool, uint wonTokens);
+    event ProposalPassed(bytes32 proposalID, string name, uint value);
+    event ProposalExpired(bytes32 proposalID);
+    event IncentiveClaimed(address voter, uint challengeID, uint incentive);
+    event OperationSuccess(bool success);
     
     function init(address _token, address _plcr, uint256[] _parameters) public {
         
@@ -50,6 +55,7 @@ contract Parameterizer {
         token = EIP20Interface(_token);
         voting = PLCRVoting(_plcr);
         
+        //300,300,3600,3600,3600,3600,3600,3600,50,50,50,50,0,0
         set("minDeposit", _parameters[0]);
         set("pMinDeposit", _parameters[1]);
         set("applyStageLen", _parameters[2]);
@@ -67,7 +73,7 @@ contract Parameterizer {
         
     }
 
-    function proposeAdjustment(string _paramName, uint _paramVal) public returns (bytes32) {
+    function proposeAdjustment(string _paramName, uint _paramVal) public {
         uint minDeposit = get("pMinDeposit");
         bytes32 proposalID = keccak256(abi.encodePacked(_paramName, _paramVal));
 
@@ -79,8 +85,9 @@ contract Parameterizer {
         require(!exisitingProposal(proposalID)); 
         require(get(_paramName) != _paramVal); 
 
-        Proposal storage proposal = proposals[proposalID];
-
+        Proposal storage proposal = proposals[proposalID]; 
+        proposalNonce.push(proposalID);
+        
         proposal.pIssuer = msg.sender;
         proposal.pChallengeID = 0; //i will check if omittable. 
         proposal.proposalExpiry = now.add(get("pApplyStageLen"));
@@ -91,10 +98,9 @@ contract Parameterizer {
 
         require(token.transferFrom(msg.sender, this, minDeposit));
         emit NewProposal(msg.sender, proposalID, _paramName, _paramVal, minDeposit, proposal.proposalExpiry);
-        return proposalID;
     }
 
-    function challengeProposal(bytes32 _proposalID) public returns (uint256) {
+    function challengeProposal(bytes32 _proposalID) public {
         Proposal storage proposal = proposals[_proposalID];
         uint minDeposit = proposal.pDeposit;
 
@@ -107,6 +113,8 @@ contract Parameterizer {
         );
 
         PChallenge storage _challenge = challenges[proposal.pChallengeID];
+        
+        challengeNonce.push(proposal.pChallengeID);
         _challenge.pChallenger = msg.sender;
         _challenge.pIncentivePool = SafeMath.sub(100, get("pDispensationPct")).mul(minDeposit).div(100);
         _challenge.pStake = minDeposit;
@@ -117,7 +125,6 @@ contract Parameterizer {
 
         (uint commitEndDate, uint revealEndDate,,,) = voting.pollMap(proposal.pChallengeID);
         emit NewProposalChallenge(msg.sender, _proposalID, proposal.pChallengeID, commitEndDate, revealEndDate);
-        return proposal.pChallengeID;
     }
 
     //i will review this 
@@ -145,6 +152,7 @@ contract Parameterizer {
         now.add(get("pApplyStageLen")).add(get("pCommitStageLen")).add(get("pRevealStageLen")).add(PROCESSBY);
 
         delete proposals[_proposalID];
+        emit OperationSuccess(true);
     }
 
     //Needs to be looped.
@@ -240,8 +248,29 @@ contract Parameterizer {
         return (2 * challenges[_challengeID].pStake) - challenges[_challengeID].pIncentivePool;
     }
     
+    function getProposalNonce() public view returns(bytes32[]){
+        return proposalNonce;
+    }
+    
+    function getChallengeNonce() public view returns(uint256[]){
+        return challengeNonce;
+    }
+    
+    function getChallenge(uint256 _challengeID) public view returns(bool _isConcluded, uint256 _incentivePool) {
+        _isConcluded = challenges[_challengeID].pIsConcluded;
+        _incentivePool = challenges[_challengeID].pIncentivePool;
+    }
+    
+    function getProposal(bytes32 _proposalID) public view returns(string _paramName, uint256 _paramVal, uint256 _challengeID, uint256 _proposalExpiry){
+        _paramName = proposals[_proposalID].paramName;
+        _paramVal =  proposals[_proposalID].paramVal;
+        _challengeID = proposals[_proposalID].pChallengeID;
+        _proposalExpiry = proposals[_proposalID].proposalExpiry;
+    }
+    
     //FUNCTION TESTERS
     function AAAexpireProposal(bytes32 _proposalID) public {
         proposals[_proposalID].proposalExpiry = now - 1;
+        emit OperationSuccess(true);
     }
 }
