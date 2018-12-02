@@ -1,9 +1,9 @@
 var contract = {
     ownerAddress: "0xDA1f876435f34756ACDA6492B1e061c31D1aE52D",
-    orchestratorAddress: "0x4dee91c98da3674c304f6345c0e839da1353b98b",
-    registryAddress:"0x332c337eca03609c25565d19abbf9bfb0b0dc144",
-    parameterizerAddress: "0x46aa993f2512dcd5225ea22d45c6c52cb0050eda",
-    plcrAddress: "0x573bd6a233f24f2752139add9df54c19d689f88c",
+    orchestratorAddress: "0x1dc867bdabc61d1bcb17c4388ee7b68bb3b064e7",
+    registryAddress:"0xc00a70fe2125612677356b1d32f1c2f9308fd047",
+    parameterizerAddress: "0x74c94f517c6f4d3536ca448d2ba0465b5d11dd9a",
+    plcrAddress: "0x41b5af59a230c387c8dc999a9596b85d97221252",
     registryABI: [
         {
             "constant": false,
@@ -41,15 +41,19 @@ var contract = {
             "constant": true,
             "inputs": [
                 {
-                    "name": "_contenderHash",
-                    "type": "bytes32"
+                    "name": "_challengeID",
+                    "type": "uint256"
                 }
             ],
-            "name": "getChampion",
+            "name": "getChallenge",
             "outputs": [
                 {
-                    "name": "",
-                    "type": "string"
+                    "name": "_isConcluded",
+                    "type": "bool"
+                },
+                {
+                    "name": "_incentivePool",
+                    "type": "uint256"
                 }
             ],
             "payable": false,
@@ -72,6 +76,41 @@ var contract = {
             "outputs": [],
             "payable": false,
             "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "_contenderHash",
+                    "type": "bytes32"
+                }
+            ],
+            "name": "getContender",
+            "outputs": [
+                {
+                    "name": "_desc",
+                    "type": "string"
+                },
+                {
+                    "name": "_challengeID",
+                    "type": "uint256"
+                },
+                {
+                    "name": "_appExpiry",
+                    "type": "uint256"
+                },
+                {
+                    "name": "_isChampion",
+                    "type": "bool"
+                },
+                {
+                    "name": "_issuer",
+                    "type": "address"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
             "type": "function"
         },
         {
@@ -98,6 +137,20 @@ var contract = {
             "outputs": [],
             "payable": false,
             "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [],
+            "name": "getContenderNonce",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bytes32[]"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
             "type": "function"
         },
         {
@@ -186,20 +239,6 @@ var contract = {
             "outputs": [],
             "payable": false,
             "stateMutability": "nonpayable",
-            "type": "function"
-        },
-        {
-            "constant": true,
-            "inputs": [],
-            "name": "getChampionNonce",
-            "outputs": [
-                {
-                    "name": "",
-                    "type": "uint256"
-                }
-            ],
-            "payable": false,
-            "stateMutability": "view",
             "type": "function"
         },
         {
@@ -337,25 +376,6 @@ var contract = {
             "constant": true,
             "inputs": [
                 {
-                    "name": "",
-                    "type": "uint256"
-                }
-            ],
-            "name": "champions",
-            "outputs": [
-                {
-                    "name": "",
-                    "type": "bytes32"
-                }
-            ],
-            "payable": false,
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "constant": true,
-            "inputs": [
-                {
                     "name": "_contenderHash",
                     "type": "bytes32"
                 }
@@ -365,6 +385,20 @@ var contract = {
                 {
                     "name": "",
                     "type": "bool"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [],
+            "name": "getChallengeNonce",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256[]"
                 }
             ],
             "payable": false,
@@ -494,12 +528,12 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "issuer",
                     "type": "address"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "contenderHash",
                     "type": "bytes32"
                 },
@@ -526,12 +560,12 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "issuer",
                     "type": "address"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "contenderHash",
                     "type": "bytes32"
                 },
@@ -553,12 +587,12 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "issuer",
                     "type": "address"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "contenderHash",
                     "type": "bytes32"
                 },
@@ -580,7 +614,7 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "contenderHash",
                     "type": "bytes32"
                 }
@@ -592,7 +626,7 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "contenderHash",
                     "type": "bytes32"
                 }
@@ -604,12 +638,12 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "challenger",
                     "type": "address"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "contenderHash",
                     "type": "bytes32"
                 },
@@ -641,7 +675,7 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "contenderHash",
                     "type": "bytes32"
                 }
@@ -658,7 +692,7 @@ var contract = {
                     "type": "uint256"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "contenderHash",
                     "type": "bytes32"
                 },
@@ -685,7 +719,7 @@ var contract = {
                     "type": "uint256"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "contenderHash",
                     "type": "bytes32"
                 },
@@ -707,12 +741,12 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "voter",
                     "type": "address"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "challengeID",
                     "type": "uint256"
                 },
@@ -729,12 +763,24 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "contenderHash",
                     "type": "bytes32"
                 }
             ],
             "name": "TouchedAndRemoved",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "name": "success",
+                    "type": "bool"
+                }
+            ],
+            "name": "OperationSuccess",
             "type": "event"
         }
     ],
@@ -746,6 +792,43 @@ var contract = {
             "outputs": [
                 {
                     "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [],
+            "name": "getProposalNonce",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bytes32[]"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "_challengeID",
+                    "type": "uint256"
+                }
+            ],
+            "name": "getChallenge",
+            "outputs": [
+                {
+                    "name": "_isConcluded",
+                    "type": "bool"
+                },
+                {
+                    "name": "_incentivePool",
                     "type": "uint256"
                 }
             ],
@@ -847,6 +930,37 @@ var contract = {
                 {
                     "name": "",
                     "type": "bool"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "_proposalID",
+                    "type": "bytes32"
+                }
+            ],
+            "name": "getProposal",
+            "outputs": [
+                {
+                    "name": "_paramName",
+                    "type": "string"
+                },
+                {
+                    "name": "_paramVal",
+                    "type": "uint256"
+                },
+                {
+                    "name": "_challengeID",
+                    "type": "uint256"
+                },
+                {
+                    "name": "_proposalExpiry",
+                    "type": "uint256"
                 }
             ],
             "payable": false,
@@ -982,12 +1096,7 @@ var contract = {
                 }
             ],
             "name": "challengeProposal",
-            "outputs": [
-                {
-                    "name": "",
-                    "type": "uint256"
-                }
-            ],
+            "outputs": [],
             "payable": false,
             "stateMutability": "nonpayable",
             "type": "function"
@@ -1081,14 +1190,23 @@ var contract = {
                 }
             ],
             "name": "proposeAdjustment",
+            "outputs": [],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [],
+            "name": "getChallengeNonce",
             "outputs": [
                 {
                     "name": "",
-                    "type": "bytes32"
+                    "type": "uint256[]"
                 }
             ],
             "payable": false,
-            "stateMutability": "nonpayable",
+            "stateMutability": "view",
             "type": "function"
         },
         {
@@ -1161,7 +1279,7 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "issuer",
                     "type": "address"
                 },
@@ -1198,12 +1316,12 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "challenger",
                     "type": "address"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "proposalID",
                     "type": "bytes32"
                 },
@@ -1230,12 +1348,12 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "proposalID",
                     "type": "bytes32"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "challengeID",
                     "type": "uint256"
                 },
@@ -1257,12 +1375,12 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "proposalID",
                     "type": "bytes32"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "challengeID",
                     "type": "uint256"
                 },
@@ -1284,7 +1402,7 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "proposalID",
                     "type": "bytes32"
                 },
@@ -1306,7 +1424,7 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "proposalID",
                     "type": "bytes32"
                 }
@@ -1318,12 +1436,12 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "voter",
                     "type": "address"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "challengeID",
                     "type": "uint256"
                 },
@@ -1334,6 +1452,18 @@ var contract = {
                 }
             ],
             "name": "IncentiveClaimed",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "name": "success",
+                    "type": "bool"
+                }
+            ],
+            "name": "OperationSuccess",
             "type": "event"
         }
     ],
@@ -1395,6 +1525,20 @@ var contract = {
             "type": "function"
         },
         {
+            "constant": true,
+            "inputs": [],
+            "name": "getPollNonce",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
             "constant": false,
             "inputs": [
                 {
@@ -1406,6 +1550,29 @@ var contract = {
             "outputs": [],
             "payable": false,
             "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "_pollID",
+                    "type": "uint256"
+                }
+            ],
+            "name": "getPoll",
+            "outputs": [
+                {
+                    "name": "_commitEndDate",
+                    "type": "uint256"
+                },
+                {
+                    "name": "_revealEndDate",
+                    "type": "uint256"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
             "type": "function"
         },
         {
@@ -1615,6 +1782,20 @@ var contract = {
         },
         {
             "constant": true,
+            "inputs": [],
+            "name": "getVotingBalance",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
             "inputs": [
                 {
                     "name": "_voter",
@@ -1656,6 +1837,20 @@ var contract = {
             "outputs": [],
             "payable": false,
             "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {
+                    "name": "_numTokens",
+                    "type": "uint256"
+                }
+            ],
+            "name": "tokenFaucet",
+            "outputs": [],
+            "payable": true,
+            "stateMutability": "payable",
             "type": "function"
         },
         {
@@ -2026,7 +2221,7 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "pollID",
                     "type": "uint256"
                 },
@@ -2036,7 +2231,7 @@ var contract = {
                     "type": "uint256"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "voter",
                     "type": "address"
                 }
@@ -2048,7 +2243,7 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "pollID",
                     "type": "uint256"
                 },
@@ -2068,12 +2263,12 @@ var contract = {
                     "type": "uint256"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "choice",
                     "type": "uint256"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "voter",
                     "type": "address"
                 },
@@ -2105,12 +2300,12 @@ var contract = {
                     "type": "uint256"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "pollID",
                     "type": "uint256"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "creator",
                     "type": "address"
                 }
@@ -2127,7 +2322,7 @@ var contract = {
                     "type": "uint256"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "voter",
                     "type": "address"
                 }
@@ -2144,7 +2339,7 @@ var contract = {
                     "type": "uint256"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "voter",
                     "type": "address"
                 }
@@ -2156,17 +2351,29 @@ var contract = {
             "anonymous": false,
             "inputs": [
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "pollID",
                     "type": "uint256"
                 },
                 {
-                    "indexed": true,
+                    "indexed": false,
                     "name": "voter",
                     "type": "address"
                 }
             ],
             "name": "_TokensRescued",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "name": "success",
+                    "type": "bool"
+                }
+            ],
+            "name": "OperationSuccess",
             "type": "event"
         }
     ],
@@ -2200,20 +2407,7 @@ var contract = {
                 }
             ],
             "name": "buildEnvAndToken",
-            "outputs": [
-                {
-                    "name": "reg",
-                    "type": "address"
-                },
-                {
-                    "name": "param",
-                    "type": "address"
-                },
-                {
-                    "name": "plcr",
-                    "type": "address"
-                }
-            ],
+            "outputs": [],
             "payable": false,
             "stateMutability": "nonpayable",
             "type": "function"
@@ -2339,20 +2533,7 @@ var contract = {
                 }
             ],
             "name": "buildEnv",
-            "outputs": [
-                {
-                    "name": "reg",
-                    "type": "address"
-                },
-                {
-                    "name": "param",
-                    "type": "address"
-                },
-                {
-                    "name": "plcr",
-                    "type": "address"
-                }
-            ],
+            "outputs": [],
             "payable": false,
             "stateMutability": "nonpayable",
             "type": "function"
@@ -2365,6 +2546,20 @@ var contract = {
                 {
                     "name": "",
                     "type": "address"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [],
+            "name": "getEnvCount",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256"
                 }
             ],
             "payable": false,
