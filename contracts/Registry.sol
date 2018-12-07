@@ -2,7 +2,9 @@ pragma solidity ^0.4.24;
 
 
 import "https://github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "https://github.com/ConsenSys/Tokens/contracts/eip20/EIP20Interface.sol";
+// import "https://github.com/ConsenSys/Tokens/contracts/eip20/EIP20Interface.sol";
+// import "./EIP20.sol";
+import "./ERC20Detailed.sol";
 import "./Parameterizer.sol";
 import "./PLCRVoting.sol";
 
@@ -34,7 +36,7 @@ contract Registry {
     uint256[] challengeNonce;
     
 
-    EIP20Interface public token;
+    ERC20Detailed public token;
     PLCRVoting public voting;
     Parameterizer public parameterizer;
     string public name;
@@ -53,20 +55,20 @@ contract Registry {
     event OperationSuccess(bool success);
 
 
-    function init(address _token, string _name, address _parameterizer, address _voting) public {
-        require((_token != 0 && address(token) == 0) &&
+    function init(ERC20Detailed _token, string _name, address _parameterizer, address _voting) public {
+        require(address(token) == 0 &&
                 (_voting != 0 && address(voting) == 0) &&
                 (_parameterizer != 0 && address(parameterizer) == 0));
         
-        token = EIP20Interface(_token);
+        token = ERC20Detailed(_token);
         voting = PLCRVoting(_voting);
         parameterizer = Parameterizer(_parameterizer);
         name = _name;
     }
     
+    
     //Contender Functions
-
-    function register(bytes32 _contenderHash, uint256 _amount, string _desc, string _extra) external {
+    function register(bytes32 _contenderHash, uint256 _amount, string _desc, string _extra) public {
         require(_amount >= parameterizer.get("minDeposit") && 
                 !isChampion(_contenderHash) && 
                 !existingContender(_contenderHash));
@@ -79,14 +81,14 @@ contract Registry {
         contender.deposit = _amount;
         contender.applicationExpiry = block.timestamp.add(parameterizer.get("applyStageLen"));
         
-        require(token.transferFrom(contenders[_contenderHash].issuer, this, _amount));
+        // require(token.transferFrom(msg.sender, this, _amount));
         emit NewContender(msg.sender, _contenderHash, _amount, contenders[_contenderHash].applicationExpiry, _extra);
     }
 
     function deposit(bytes32 _contenderHash, uint256 _amount) external {
         Contender storage contender = contenders[_contenderHash];
-        require(contender.issuer == msg.sender && 
-                token.transferFrom(msg.sender, this, _amount));
+        require(contender.issuer == msg.sender);
+        // && token.transferFrom(msg.sender, this, _amount));
         contender.deposit += _amount;
 
         emit Deposit(msg.sender, _contenderHash, _amount, contender.deposit);
@@ -97,8 +99,8 @@ contract Registry {
 
         require(contender.issuer == msg.sender &&
                 contender.deposit >= _amount  &&
-                contender.deposit - _amount >= parameterizer.get("minDeposit") &&
-                token.transfer(msg.sender, _amount));
+                contender.deposit - _amount >= parameterizer.get("minDeposit"));
+                // && token.transfer(msg.sender, _amount));
 
         contender.deposit -= _amount;
         emit Withdrawal(msg.sender, _contenderHash, _amount, contender.deposit);
@@ -139,7 +141,7 @@ contract Registry {
         contender.deposit -= minDeposit;
         (uint commitEndDate, uint revealEndDate,,,) = voting.pollMap(contender.challengeID);
         
-        require(token.transferFrom(msg.sender, this, minDeposit));
+        // require(token.transferFrom(msg.sender, this, minDeposit));
         emit NewChallenge(msg.sender, _contenderHash, contender.challengeID, _evidence,  commitEndDate, revealEndDate);
     }
 
@@ -167,7 +169,7 @@ contract Registry {
         _challenge.incentivePool -= reward;
 
         _challenge.incentiveClaims[msg.sender] = true;
-        require(token.transfer(msg.sender, reward));
+        //require(token.transfer(msg.sender, reward));
 
         emit IncentiveClaimed(msg.sender, _challengeID, reward);
     }
@@ -222,7 +224,6 @@ contract Registry {
         uint256 reward = calculateIncentive(challengeID);
         
         _challenge.isConcluded = true;
-
         _challenge.wonTokens = voting.getTotalNumberOfTokensForWinningOption(challengeID);
 
         if(voting.isPassed(challengeID)){
@@ -232,7 +233,7 @@ contract Registry {
         }
         else {
             backtrackState(_contenderHash);
-            require(token.transfer(challenges[challengeID].challenger, reward));
+            // require(token.transfer(challenges[challengeID].challenger, reward));
             emit ChallengerWon(challengeID, _contenderHash, _challenge.incentivePool, _challenge.wonTokens);
         }
     }
@@ -249,7 +250,7 @@ contract Registry {
 
         Contender storage contender = contenders[_contenderHash];
         bool contenderState = contender.isChampion;
-        if(contender.deposit > 0) require(token.transfer(contender.issuer, contender.deposit));
+        // if(contender.deposit > 0) require(token.transfer(contender.issuer, contender.deposit));
         
         if(contenderState) emit ChampionRemoved(_contenderHash);
         else emit ContenderRemoved(_contenderHash);
@@ -281,7 +282,8 @@ contract Registry {
         _issuer = contenders[_contenderHash].issuer;
     }
     
-    function getChallenge(uint256 _challengeID) public view returns(bool _isConcluded, uint256 _incentivePool) {
+    function getChallenge(uint256 _challengeID) public view returns(bool _isConcluded, uint256 _incentivePool, address _challenger) {
+        _challenger = challenges[_challengeID].challenger;
         _isConcluded = challenges[_challengeID].isConcluded;
         _incentivePool = challenges[_challengeID].incentivePool;
     }

@@ -1,7 +1,8 @@
 pragma solidity^0.4.11;
 
 import "./PLCRVoting.sol";
-import "https://github.com/ConsenSys/Tokens/contracts/eip20/EIP20Interface.sol";
+import "./ERC20Detailed.sol";
+// import "https://github.com/ConsenSys/Tokens/contracts/eip20/EIP20Interface.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract Parameterizer {
@@ -34,7 +35,7 @@ contract Parameterizer {
     uint256[] challengeNonce;
     
     
-    EIP20Interface public token;
+    ERC20Detailed public token;
     PLCRVoting public voting;
     uint256 public PROCESSBY = 0; //604800
     
@@ -47,12 +48,12 @@ contract Parameterizer {
     event IncentiveClaimed(address voter, uint challengeID, uint incentive);
     event OperationSuccess(bool success);
     
-    function init(address _token, address _plcr, uint256[] _parameters) public {
+    function init(ERC20Detailed _token, address _plcr, uint256[] _parameters) public {
         
-        require(_token != 0 && address(token) == 0);
+        require(address(token) == 0);
         require(_plcr != 0 && address(voting) == 0);
 
-        token = EIP20Interface(_token);
+        token = ERC20Detailed(_token);
         voting = PLCRVoting(_plcr);
         
         //300,300,3600,3600,3600,3600,3600,3600,50,50,50,50,0,0
@@ -96,7 +97,7 @@ contract Parameterizer {
         proposal.processBy = now.add(get("pApplyStageLen")).add(get("pCommitStageLen")).add(get("pRevealStageLen")).add(PROCESSBY);
         proposal.paramVal = _paramVal;
 
-        require(token.transferFrom(msg.sender, this, minDeposit));
+        // require(token.transferFrom(msg.sender, this, minDeposit));
         emit NewProposal(msg.sender, proposalID, _paramName, _paramVal, minDeposit, proposal.proposalExpiry);
     }
 
@@ -121,7 +122,7 @@ contract Parameterizer {
         _challenge.pIsConcluded = false; //i will check if omittable. 
         _challenge.pWonTokens = 0; //i will check if omittable. 
     
-        require(token.transferFrom(msg.sender, this, minDeposit));
+        // require(token.transferFrom(msg.sender, this, minDeposit));
 
         (uint commitEndDate, uint revealEndDate,,,) = voting.pollMap(proposal.pChallengeID);
         emit NewProposalChallenge(msg.sender, _proposalID, proposal.pChallengeID, commitEndDate, revealEndDate);
@@ -135,7 +136,7 @@ contract Parameterizer {
             set(proposal.paramName, proposal.paramVal);
             emit ProposalPassed(_proposalID, proposal.paramName, proposal.paramVal);
             delete proposals[_proposalID];
-            require(token.transfer(proposal.pIssuer, proposal.pDeposit));
+            // require(token.transfer(proposal.pIssuer, proposal.pDeposit));
         } 
         else if (challengeCanBeConcluded(_proposalID)) {
             concludeChallenge(_proposalID);
@@ -143,7 +144,7 @@ contract Parameterizer {
         else if (now > proposal.processBy) {
             emit ProposalExpired(_proposalID);
             delete proposals[_proposalID];
-            require(token.transfer(proposal.pIssuer, proposal.pDeposit));
+            // require(token.transfer(proposal.pIssuer, proposal.pDeposit));
         }
         else revert();
 
@@ -170,7 +171,7 @@ contract Parameterizer {
         challenge.pIncentiveClaims[msg.sender] = true;
 
         emit IncentiveClaimed(msg.sender, _challengeID, incentive);
-        require(token.transfer(msg.sender, incentive));
+        // require(token.transfer(msg.sender, incentive));
     }
 
     function batchClaimIncentives(uint256[] _challengeIDs) public {
@@ -232,11 +233,11 @@ contract Parameterizer {
                 set(proposal.paramName, proposal.paramVal);
             }
             emit PChallengerLost(_proposalID, proposal.pChallengeID, challenge.pIncentivePool, challenge.pWonTokens);
-            require(token.transfer(proposal.pIssuer, incentive));
+            // require(token.transfer(proposal.pIssuer, incentive));
         }
         else {
             emit PChallengerWon(_proposalID, proposal.pChallengeID, challenge.pIncentivePool, challenge.pWonTokens);
-            require(token.transfer(challenge.pChallenger, incentive));
+            // require(token.transfer(challenge.pChallenger, incentive));
         }
     }
 
@@ -256,7 +257,8 @@ contract Parameterizer {
         return challengeNonce;
     }
     
-    function getChallenge(uint256 _challengeID) public view returns(bool _isConcluded, uint256 _incentivePool) {
+    function getChallenge(uint256 _challengeID) public view returns(bool _isConcluded, uint256 _incentivePool, address _challenger) {
+        _challenger = challenges[_challengeID].pChallenger;
         _isConcluded = challenges[_challengeID].pIsConcluded;
         _incentivePool = challenges[_challengeID].pIncentivePool;
     }

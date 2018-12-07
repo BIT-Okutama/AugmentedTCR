@@ -1,6 +1,7 @@
 pragma solidity ^0.4.8;
 
-import "https://github.com/ConsenSys/Tokens/contracts/eip20/EIP20Interface.sol";
+import "./ERC20Detailed.sol";
+// import "https://github.com/ConsenSys/Tokens/contracts/eip20/EIP20Interface.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./DLL.sol";
 import "./AttributeStore.sol";
@@ -39,13 +40,12 @@ contract PLCRVoting {
     mapping(address => DLL.Data) dllMap;
     AttributeStore.Data store;
 
-    EIP20Interface public token;
+    ERC20Detailed public token;
 
-
-    function init(address _token) public {
+    function init(ERC20Detailed _token) public {
         require(_token != address(0) && address(token) == address(0));
-
-        token = EIP20Interface(_token);
+        
+        token = ERC20Detailed(_token);
         pollNonce = INITIAL_POLL_NONCE;
     }
     
@@ -56,9 +56,9 @@ contract PLCRVoting {
     }
 
     function requestVotingRights(uint _numTokens) public {
-        require(token.balanceOf(msg.sender) >= _numTokens);
+        // require(token.balanceOf(msg.sender) >= _numTokens);
         voteTokenBalance[msg.sender] += _numTokens;
-        require(token.transferFrom(msg.sender, this, _numTokens));
+        // require(token.transferFrom(msg.sender, this, _numTokens));
         emit _VotingRightsGranted(_numTokens, msg.sender);
     }
     
@@ -71,7 +71,7 @@ contract PLCRVoting {
         uint availableTokens = voteTokenBalance[msg.sender].sub(getLockedTokens(msg.sender));
         require(availableTokens >= _numTokens);
         voteTokenBalance[msg.sender] -= _numTokens;
-        require(token.transfer(msg.sender, _numTokens));
+        // require(token.transfer(msg.sender, _numTokens));
         emit _VotingRightsWithdrawn(_numTokens, msg.sender);
     }
 
